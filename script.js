@@ -414,5 +414,55 @@ function renderRewards() {
     });
 }
 
+// --- Backup & Restore Functions ---
+
+function exportData() {
+    // 1. Convert current state to a string
+    const dataStr = JSON.stringify(state, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    
+    // 2. Create a temporary "download link"
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    
+    // 3. Name the file with today's date
+    const date = new Date().toISOString().split('T')[0];
+    link.download = `pocket-brownie-backup-${date}.json`;
+    link.href = url;
+    
+    // 4. Trigger the download and cleanup
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+}
+
+function importData(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const importedData = JSON.parse(e.target.result);
+            
+            // Basic validation to ensure it's a Pocket Brownie file
+            if (importedData.hasOwnProperty('points') && importedData.hasOwnProperty('tasks')) {
+                if (confirm("This will overwrite your current tasks and points. Proceed?")) {
+                    state = importedData;
+                    saveData(); // Save to localStorage
+                    renderAll(); // Refresh the screen
+                    alert("Data restored successfully!");
+                }
+            } else {
+                alert("Invalid backup file format.");
+            }
+        } catch (err) {
+            alert("Error reading file: " + err.message);
+        }
+    };
+    reader.readAsText(file);
+}
+
 // Start app
 window.onload = init;
