@@ -1,0 +1,312 @@
+:root {
+    --bg-dark: #121212;
+    --bg-panel: #1e1e1e;
+    --bg-hover: #2a2a2a;
+    --text-main: #e0e0e0;
+    --text-muted: #888888;
+    --accent: #d4a373; 
+    --due-today: #f4a261;
+    --overdue: #e76f51;
+    --completed: #2a9d8f;
+    --edit: #457b9d;
+}
+
+/* Dark Mode Scrollbar */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: var(--bg-dark); }
+::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #666; }
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+body {
+    background-color: var(--bg-dark);
+    color: var(--text-main);
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    user-select: none; /* Prevents text highlighting while playing with the app */
+}
+
+.app-container {
+    display: flex;
+    width: 100%;
+    height: 100%;
+}
+
+/* Navigation */
+.navbar {
+    background-color: var(--bg-panel);
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+    border-top: 1px solid #333;
+    z-index: 10;
+}
+
+.brand {
+    color: var(--accent);
+    font-size: 1.2rem;
+    display: none; 
+}
+
+.nav-links {
+    list-style: none;
+    display: flex;
+    width: 100%;
+    justify-content: space-around;
+}
+
+.nav-links li {
+    padding: 0.5rem;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: background 0.2s;
+    font-size: 0.9rem;
+    text-align: center;
+}
+
+.nav-links li:hover, .nav-links li.active {
+    background-color: var(--bg-hover);
+    color: var(--accent);
+    transform: scale(1.1);
+}
+
+/* Main Content */
+.content {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+}
+
+.top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+
+    /* The Fix: Sticky instead of Fixed */
+    position: sticky;
+    top: 0;
+    z-index: 5; /* Ensures it stays on top of tasks as they scroll under */
+    background: var(--bg-dark); /* Using your CSS variable for #121212 */
+    
+    /* I added 1rem of bottom padding so tasks don't clip awkwardly into the text when scrolling */
+    padding: 1rem 1.25rem 1rem 1.25rem; 
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.points-display {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: var(--accent);
+    background: var(--bg-panel);
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    border: 1px solid #333;
+}
+
+button {
+    cursor: pointer;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-weight: bold;
+}
+
+.btn-primary { background-color: var(--accent); color: #121212; }
+.btn-primary:hover { transform: scale(1.1); }
+.btn-cancel { background-color: transparent; color: var(--text-main); border: 1px solid var(--text-muted);}
+.btn-cancel:hover  { transform: scale(1.1); }
+.btn-edit { background-color: var(--edit); color: #fff; }
+.btn-edit:hover  { transform: scale(1.1); }
+
+/* Folders & Randomizer */
+.folder-header {
+    background-color: var(--bg-hover);
+    padding: 0.75rem 1rem;
+    border-radius: 6px;
+    margin-bottom: 0.5rem;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: bold;
+    user-select: none;
+}
+
+.folder-header:hover { background-color: #333;}
+
+.folder-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.btn-random {
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 1.2rem;
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.btn-random:hover { transform: scale(1.3) rotate(360deg); }
+
+.folder-content {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 1.5rem;
+    padding-left: 0.5rem;
+    border-left: 2px solid var(--bg-hover);
+}
+
+.folder-content.collapsed { display: none; }
+.caret { transition: transform 0.2s; }
+.caret.collapsed { transform: rotate(-90deg); }
+
+/* Task Items */
+.tab-view { display: none;}
+.tab-view.active-view { display: block; }
+
+.task-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 1rem;
+}
+
+.task-item {
+    background-color: var(--bg-panel);
+    padding: 1rem;
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-left: 4px solid transparent;
+}
+
+.task-item.completed { opacity: 0.6; }
+.task-item.completed h4 { text-decoration: line-through; }
+.task-item.due-today { border-left-color: var(--due-today); }
+.task-item.overdue { border-left-color: var(--overdue); }
+
+.task-info h4 { margin-bottom: 0.25rem; }
+.task-info small { color: var(--text-muted); display: block; }
+
+.task-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+/* Reward Input Area */
+.reward-section {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    background: var(--bg-panel);
+    padding: 1rem;
+    border-radius: 8px;
+}
+
+.reward-section input {
+    flex-grow: 1;
+    padding: 0.5rem;
+    background: var(--bg-dark);
+    color: var(--text-main);
+    border: 1px solid #333;
+    border-radius: 4px;
+}
+
+/* Modal */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.7);
+    justify-content: center;
+    align-items: center;
+    z-index: 20;
+}
+
+.modal-content {
+    background: var(--bg-panel);
+    padding: 2rem;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 400px;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.modal-content input, .modal-content select, .modal-content textarea {
+    width: 100%;
+    padding: 0.5rem;
+    background: var(--bg-dark);
+    color: var(--text-main);
+    border: 1px solid #333;
+    border-radius: 4px;
+}
+
+/* Responsive Rules */
+@media (max-width: 767px) {
+    .app-container { flex-direction: column-reverse; } 
+    .navbar { 
+        width: 100%; 
+        position: fixed; 
+        bottom: 0; 
+        left: 0;
+        padding: 0.5rem;
+    }
+}
+
+@media (min-width: 768px) {
+    .app-container { flex-direction: row; } 
+    .content { padding-bottom: 1rem; }
+    .navbar { 
+        width: 200px; 
+        flex-direction: column; 
+        justify-content: flex-start;
+        align-items: flex-start;
+        height: 100vh;
+        border-top: none;
+        border-right: 1px solid #333;
+    }
+    .brand { display: block; margin-bottom: 2rem; }
+    .nav-links { flex-direction: column; gap: 1rem; margin-bottom: 2rem; }
+    .nav-links li { width: 100%; text-align: left; }
+}
+
+input[type="date"] {
+    margin-left: 8px;
+    background-color: #3c3c3c;
+    width: 36%;
+    cursor: pointer;
+}
+
+textarea {
+    resize: vertical;              /* Allow only vertical resizing */
+}
+
+input, textarea {
+    user-select: text;
+}

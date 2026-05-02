@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pocket Brownie</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Navigation -->
+        <nav class="navbar">
+            <h1 class="brand">Pocket Brownie</h1>
+            <ul class="nav-links">
+                <li class="active" onclick="switchTab('week')">Week</li>
+                <li onclick="switchTab('todos')">To-Dos</li>
+                <li onclick="switchTab('chores')">Chores</li>
+                <li onclick="switchTab('habits')">Habits</li>
+                <li onclick="switchTab('rewards')">Rewards</li>
+            </ul>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main class="content">
+            <header class="top-bar">
+                <h2 id="current-tab-title">This Week</h2>
+                <div class="header-actions">
+                    <div class="points-display">
+                        <span>Points: </span>
+                        <span id="brownie-points">0</span>
+                    </div>
+                    <button class="btn-primary" onclick="openModal()">+ Add Item</button>
+                </div>
+            </header>
+
+            <!-- Views -->
+            <section id="view-week" class="tab-view active-view">
+                <div id="list-week" class="task-list"></div>
+            </section>
+
+            <section id="view-todos" class="tab-view">
+                <div id="list-todos" class="task-list"></div>
+            </section>
+
+            <section id="view-chores" class="tab-view">
+                <div id="list-chores" class="task-list"></div>
+            </section>
+
+            <section id="view-habits" class="tab-view">
+                <div id="list-habits" class="task-list"></div>
+            </section>
+
+            <section id="view-rewards" class="tab-view">
+                <div class="reward-section">
+                    <input type="text" id="reward-name" placeholder="Reward Name (e.g., Video Games)">
+                    <input type="number" id="reward-cost" placeholder="Cost">
+                    <button class="btn-primary" id="btn-add-reward" onclick="saveReward()">Add Reward</button>
+                    <button class="btn-cancel" id="btn-cancel-reward" onclick="cancelEditReward()" style="display:none;">Cancel</button>
+                </div>
+                <div id="list-rewards" class="task-list" style="margin-top: 1rem;"></div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Add/Edit Modal -->
+    <div id="task-modal" class="modal">
+        <div class="modal-content">
+            <h3 id="modal-title">Add New Item</h3>
+
+            <select id="task-category" onchange="toggleCategoryFields()">
+                <option value="todos">To-Do (One-time/Bonus)</option>
+                <option value="chores">Chore (Repeating)</option>
+                <option value="habits">Habit (Repeatable, no due date)</option>
+            </select>
+
+            <input type="text" id="task-title" placeholder="Task Title" required>
+
+            <div id="folder-group">
+                <input type="text" id="task-folder" placeholder="Folder/Header (e.g., Work, Home)">
+            </div>
+            
+            <input type="number" id="task-points" placeholder="Points Earned (can be negative)">
+            
+            <div id="date-group">
+                <label>Due Date:</label>
+                <input type="date" id="task-date">
+            </div>
+
+            <!-- Chore Specific: Recurring Options -->
+            <div id="chore-group" style="display:none;">
+                <label>Repeats:</label>
+                <select id="task-recur-type" onchange="toggleCategoryFields()">
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option>
+                    <option value="interval">Custom Interval (Days)</option>
+                </select>
+                <input type="number" id="task-recur-days" placeholder="Every X days" style="display:none; margin-top: 0.5rem;">
+            </div>
+
+            <textarea id="task-notes" placeholder="Notes or Subtasks..."></textarea>
+            
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+                <button class="btn-primary" onclick="saveTask()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- NEW: Randomizer Modal -->
+    <div id="random-modal" class="modal">
+        <div class="modal-content" style="text-align: center; padding: 3rem;">
+            <h3 id="random-folder-name" style="color: var(--text-muted); margin-bottom: 1rem;">Choosing from...</h3>
+            
+            <div id="random-animation-box" style="font-size: 1.5rem; font-weight: bold; min-height: 80px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--accent);">
+                🎲 Shuffling...
+            </div>
+            
+            <div class="modal-actions" style="justify-content: center; margin-top: 2rem;">
+                <button class="btn-primary" id="btn-close-random" onclick="closeRandomModal()" style="display:none;">Let's Do It!</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
