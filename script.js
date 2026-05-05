@@ -148,6 +148,11 @@ function toggleTaskComplete(id) {
     if (!task.completed) {
         task.completed = true;
         state.points += task.points;
+        
+        // NEW: Trigger a 50ms vibration when a task is completed!
+        if (navigator.vibrate) {
+            navigator.vibrate(50); 
+        }
     } else {
         task.completed = false;
         state.points -= task.points;
@@ -427,7 +432,7 @@ function exportData() {
     
     // 3. Name the file with today's date
     const date = new Date().toISOString().split('T')[0];
-    link.download = `pocket-brownie-backup-${date}.json`;
+    link.download = `brownie-backup-${date}.json`;
     link.href = url;
     
     // 4. Trigger the download and cleanup
