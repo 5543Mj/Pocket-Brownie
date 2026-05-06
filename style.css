@@ -6,7 +6,7 @@
     --text-muted: #888888;
     --accent: #d4a373; 
     --due-today: #f4a261;
-    --overdue: #e76f51;
+    --overdue: tomato;
     --completed: #2a9d8f;
     --edit: #457b9d;
 }
@@ -140,12 +140,12 @@ button {
     font-weight: bold;
 }
 
-.btn-primary { background-color: var(--accent); color: #121212; font-size: 15px;}
+.btn-primary { background-color: var(--accent); color: #121212; font-size: 18px;}
 .btn-primary:hover { transform: scale(0.95); }
-.btn-cancel { background-color: transparent; color: var(--text-main); border: 1px solid var(--text-muted); font-size: 15px;}
-.btn-cancel:hover  { transform: scale(0.95); }
-.btn-edit { background-color: var(--edit); color: #fff; font-size: 15px; }
-.btn-edit:hover  { transform: scale(0.95); }
+.btn-cancel { background-color: transparent; color: var(--text-main); border: 1px solid var(--text-muted); font-size: 18px;}
+.btn-cancel:hover  { transform: scale(0.95); background-color: var(--overdue)}
+.btn-edit { background-color: var(--edit); color: #fff; font-size: 20px; }
+.btn-edit:hover  { transform: scale(0.95);}
 
 /* Folders & Randomizer */
 .folder-header {
@@ -205,12 +205,19 @@ button {
 
 .task-item {
     background-color: var(--bg-panel);
-    padding: .5rem;
+    padding: 0.6rem;
     border-radius: 8px;
+    display: flex;
+    flex-direction: column; 
+    justify-content: center;
+    border-left: 4px solid transparent;
+}
+
+.task-top-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-left: 4px solid transparent;
+    width: 100%;
 }
 
 .task-item.completed { opacity: 0.6; }
@@ -223,12 +230,24 @@ button {
 
 .task-actions {
     display: flex;
-    gap: 0.2rem;
-    flex-wrap: wrap;
-    justify-content: flex-end;
+    gap: 5px;
+    flex-shrink: 0; /* Prevents buttons from squishing if the title is long */
 }
 
-/* Reward Input Area */
+.task-actions button {
+    width: 36px;          
+    height: 36px;         
+    padding: 0;      
+
+    /* Center the icons/text perfectly */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    
+    /* Optional: Make them slightly rounder or sharper */
+    border-radius: 6px;   
+}
+
 .reward-section {
     display: flex;
     flex-wrap: wrap;
@@ -245,6 +264,17 @@ button {
     color: var(--text-main);
     border: 1px solid #333;
     border-radius: 4px;
+}
+
+.reward-item {
+    background-color: var(--bg-panel);
+    padding: 0.6rem;
+    border-radius: 8px;
+    border-left: 4px solid transparent;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
 }
 
 /* Modal */
@@ -293,7 +323,7 @@ input, textarea {
     display: flex;
     gap: 8px;
     z-index: 15;
-    margin: 0 3rem 2rem 3rem;
+    margin: 0 2.5rem 2rem 2rem;
 }
 
 .btn-restore {
@@ -304,6 +334,22 @@ input, textarea {
     font-weight: bold;
     font-size: 0.8rem;
     cursor: pointer;
+    font-size: 20px;
+}
+
+.btn-restore:hover  { transform: scale(0.95); }
+
+input[type="date"] {
+    color: var(--text-main);
+    margin-left: 8px;
+    background-color: #3c3c3c;
+    width: 50%;
+    cursor: pointer;
+    color: var(--text-main);
+}
+
+.spin-anim {
+    animation: spinCheck 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
 
 .nav-icon {
@@ -322,7 +368,31 @@ input, textarea {
     mask-position: center;
 }
 
-/* Responsive Rules */
+/* General quote styling */
+.quote-display {
+    color: var(--text-muted);
+    font-style: italic;
+    text-align: center;
+    padding: 1rem;
+    font-size: 0.85rem;
+}
+
+/* Mobile Default */
+#quote-desktop { display: none; }
+#quote-mobile { display: block; margin-bottom: 1rem; }
+
+/* Desktop Overrides */
+@media (min-width: 768px) {
+    /* Push it to the bottom of the flex navbar */
+    #quote-desktop { 
+        display: block; 
+        margin-top: auto; 
+        padding-bottom: 2rem;
+    }
+    #quote-mobile { display: none; }
+}
+
+/* when width is 767px or less */
 @media (max-width: 767px) {
     .app-container { flex-direction: column-reverse; } 
     .navbar { 
@@ -331,6 +401,25 @@ input, textarea {
         bottom: 0; 
         left: 0;
         padding: 0.5rem;
+    }
+    .maintenance-footer {
+        position: fixed;
+        bottom: 70px; /* Above mobile navbar */
+        left: 50%;
+        transform: translateX(-50%); /* This perfectly centers it */
+        display: flex;
+        gap: 5px;
+        z-index: 15;
+        width: 90vw; /* Keeps it within screen bounds */
+        justify-content: center;
+    }
+
+    /* Use 'vw' (viewport width) so font shrinks as screen shrinks */
+    .maintenance-footer button, 
+    .maintenance-footer label {
+        font-size: 3.5vw; 
+        padding: 0.4rem 0.6rem;
+        white-space: nowrap; /* Prevents text from wrapping to two lines */
     }
 }
 
@@ -363,17 +452,11 @@ input, textarea {
         flex-direction: row; /* Puts the icon and text side-by-side */
         font-size:18px;
     }
-    .maintenance-actions {
-        bottom: 20px; 
-        left: 220px;
-        right: auto;
-    }
 }
 
-input[type="date"] {
-    color: var(--text-main);
-    margin-left: 8px;
-    background-color: #3c3c3c;
-    width: 36%;
-    cursor: pointer;
+/* Celebration Spin */
+@keyframes spinCheck {
+    0% { transform: rotate(0deg) scale(1); }
+    50% { transform: rotate(180deg) scale(1.3); }
+    100% { transform: rotate(360deg) scale(1); }
 }
