@@ -395,7 +395,7 @@ input[type="date"] {
 #quote-mobile { display: block; }
 
 /* Desktop Overrides */
-@media (min-width: 768px) {
+@media (min-width: 650px) {
     /* Push it to the bottom of the flex navbar */
     #quote-desktop { 
         display: block; 
@@ -406,7 +406,7 @@ input[type="date"] {
 }
 
 /* when width is 767px or less */
-@media (max-width: 767px) {
+@media (max-width: 650px) {
     .app-container { flex-direction: column-reverse; } 
     .navbar { 
         width: 100%; 
@@ -422,7 +422,7 @@ input[type="date"] {
     }
 }
 
-@media (min-width: 768px) {
+@media (min-width: 650px) {
     .app-container { flex-direction: row; } 
     .content { padding: 1rem 3rem 1rem 3rem; }
     .navbar { 
