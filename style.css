@@ -433,6 +433,18 @@ input[type="date"] {
     padding: 0.4rem 0.6rem;
     white-space: nowrap; 
     }
+    .head-icon {
+    width: 24px;
+    height: 24px;
+    background-color: currentColor; 
+    -webkit-mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-image: url('img/pocket.svg'); 
+    width: 50px; 
+    height: 50px; 
+    color:var(--accent);
+    }
 }
 
 @media (min-width: 650px) {
@@ -464,6 +476,7 @@ input[type="date"] {
         flex-direction: row; /* Puts the icon and text side-by-side */
         font-size:18px;
     }
+    
 }
 
 /* Celebration Spin */
