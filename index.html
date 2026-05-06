@@ -65,22 +65,22 @@
             </section>
 
             <section id="view-rewards" class="tab-view">
-                <div id="quote-mobile" class="quote-display"></div>
                 <div class="reward-section">
                     <input type="text" id="reward-name" placeholder="Reward Name" onkeydown="if(event.key === 'Enter') saveReward()">
                     <input type="number" style="max-width: 62px;" id="reward-cost" placeholder="Cost" onkeydown="if(event.key === 'Enter') saveReward()">
-                    <button class="btn-primary" id="btn-add-reward" onclick="saveReward()">Add Reward</button>
+                    <button class="btn-primary" id="btn-add-reward" onclick="saveReward()">+</button>
                     <button class="btn-cancel" id="btn-cancel-reward" onclick="cancelEditReward()" style="display:none;">Cancel</button>
                 </div>
                 <div id="list-rewards" class="task-list" style="margin-top: 1rem;"></div>
                 <hr style="border: 1px solid #333; margin: 2rem 0;">
                 <div class="maintenance-actions">
-                    <button class="btn-edit" onclick="exportData()">💾 Backup Data</button>
+                    <button class="btn-backup" onclick="exportData()">💾 Backup Data</button>
                     <label class="btn-restore">
                         📂 Restore Data
                         <input type="file" id="importFile" onchange="importData(event)" style="display: none;">
                     </label>
                 </div>
+                <div id="quote-mobile" class="quote-display"></div>
             </section>
         </main>
     </div>
