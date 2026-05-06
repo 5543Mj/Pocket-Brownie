@@ -31,6 +31,7 @@
                 <li onclick="switchTab('rewards')"><span class="nav-icon" style="-webkit-mask-image: url('img/reward.svg'); mask-image: url('img/reward.svg');">
                     </span>Rewards</li>
             </ul>
+            <div id="quote-desktop" class="quote-display"></div>
         </nav>
 
         <!-- Main Content Area -->
@@ -64,9 +65,10 @@
             </section>
 
             <section id="view-rewards" class="tab-view">
+                <div id="quote-mobile" class="quote-display"></div>
                 <div class="reward-section">
-                    <input type="text" id="reward-name" placeholder="Reward Name">
-                    <input type="number" style="max-width: 62px;" id="reward-cost" placeholder="Cost">
+                    <input type="text" id="reward-name" placeholder="Reward Name" onkeydown="if(event.key === 'Enter') saveReward()">
+                    <input type="number" style="max-width: 62px;" id="reward-cost" placeholder="Cost" onkeydown="if(event.key === 'Enter') saveReward()">
                     <button class="btn-primary" id="btn-add-reward" onclick="saveReward()">Add Reward</button>
                     <button class="btn-cancel" id="btn-cancel-reward" onclick="cancelEditReward()" style="display:none;">Cancel</button>
                 </div>
@@ -94,14 +96,31 @@
                 <option value="habits">Habit (Repeatable, no due date)</option>
             </select>
 
-            <input type="text" id="task-title" placeholder="Task Title" required>
+            <input type="text" id="task-title" placeholder="Task Title" onkeydown="if(event.key === 'Enter') saveTask()" required>
 
             <div id="folder-group">
                 <input type="text" id="task-folder" placeholder="Folder/Header (e.g., Work, Home)">
             </div>
             
-            <input type="number" id="task-points" placeholder="Points Earned (can be negative)">
-            
+            <!-- Difficulty Dropdown -->
+            <select id="task-difficulty">
+                <option value="trivial">Trivial (2 pts)</option>
+                <option value="easy">Easy (5 pts)</option>
+                <option value="medium">Medium (10 pts)</option>
+                <option value="hard">Hard (20 pts)</option>
+                <option value="expert">Expert (30 pts)</option>
+            </select>
+
+            <!-- Subtasks Manager (Only shows for Chores) -->
+            <div id="subtasks-group" style="display:none; background: var(--bg-dark); padding: 10px; border-radius: 6px; border: 1px solid #333;">
+                <label style="font-size: 0.85rem; color: var(--text-muted);">Divided Subtasks:</label>
+                <div style="display:flex; gap:5px; margin-top:5px;">
+                    <input type="text" id="new-subtask-title" placeholder="Add a subtask...">
+                    <button class="btn-primary" onclick="addModalSubtask(event)">+</button>
+                </div>
+                <ul id="modal-subtask-list" style="list-style:none; padding:0; margin-top:10px; display:flex; flex-direction:column; gap:5px;"></ul>
+            </div>
+
             <div id="date-group">
                 <label>Due Date:</label>
                 <input type="date" id="task-date">
@@ -118,7 +137,7 @@
                 <input type="number" id="task-recur-days" placeholder="Every X days" style="display:none; margin-top: 0.5rem;">
             </div>
 
-            <textarea id="task-notes" placeholder="Notes or Subtasks..."></textarea>
+            <textarea id="task-notes" placeholder="Notes..."></textarea>
             
             <div class="modal-actions">
                 <button class="btn-cancel" onclick="closeModal()">Cancel</button>
