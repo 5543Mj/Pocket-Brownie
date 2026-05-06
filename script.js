@@ -30,36 +30,14 @@ function loadQuotes() {
                 // Inject it into both HTML locations
                 const qDesktop = document.getElementById('quote-desktop');
                 const qMobile = document.getElementById('quote-mobile');
-                if (qDesktop) qDesktop.innerText = `"${randomQuote}"`;
-                if (qMobile) qMobile.innerText = `"${randomQuote}"`;
+                if (qDesktop) qDesktop.innerText = `${randomQuote}`;
+                if (qMobile) qMobile.innerText = `${randomQuote}`;
             }
         })
         .catch(err => {
             // Silently fail if file isn't found - page acts like nothing is wrong
             console.log("Quotes file not found or empty, skipping.");
         });
-}
-
-function init() {
-    const savedData = localStorage.getItem('pocketBrownie');
-    if (savedData) {
-        state = JSON.parse(savedData);
-    } else {
-        // PRESET TUTORIAL DATA
-        state.tasks = [
-            { id: 1, title: "Welcome to Pocket Brownie! 🎉", type: "todos", difficulty: "trivial", folder: "Tutorial", notes: "Click the ✔ to complete this task!", createdDate: getTodayString() },
-            { id: 2, title: "Clean Bathroom", type: "chores", difficulty: "hard", recurType: "weekly", recurInterval: 1, dueDate: getTodayString(), subtasks: [{id: 11, title: "Clean Sink", completed: false}, {id: 12, title: "Clean Toilet", completed: false}], createdDate: getTodayString() },
-            { id: 3, title: "Drink Water", type: "habits", difficulty: "trivial", folder: "Health", notes: "Habits don't have due dates, do them anytime!", createdDate: getTodayString() }
-        ];
-        state.rewards = [
-            { id: 101, name: "Guilt-free Gaming Hour", cost: 30 },
-            { id: 102, name: "Treat: Ice Cream", cost: 50 }
-        ];
-        state.points = 0;
-        saveData();
-    }
-    checkDailyUpdates();
-    renderAll();
 }
 
 // Ensure points are always rounded down for display, keeping decimals hidden in state
@@ -81,7 +59,24 @@ function init() {
     const savedData = localStorage.getItem('pocketBrownie');
     if (savedData) {
         state = JSON.parse(savedData);
+    } else {
+        // PRESET TUTORIAL DATA
+        state.tasks = [
+            { id: 1, title: "Welcome to Pocket Brownie! 🎉", type: "todos", difficulty: "trivial", folder: "Tutorial", notes: "Click the ✔ to complete this task!", createdDate: getTodayString() },
+            { id: 2, title: "Clean Bathroom", type: "chores", difficulty: "hard", recurType: "weekly", recurInterval: 1, dueDate: getTodayString(), subtasks: [{id: 11, title: "Clean Sink", completed: false}, {id: 12, title: "Clean Toilet", completed: false}], createdDate: getTodayString() },
+            { id: 3, title: "Drink Water", type: "habits", difficulty: "trivial", folder: "Health", notes: "Habits don't have due dates, do them anytime!", createdDate: getTodayString() }
+        ];
+        state.rewards = [
+            { id: 101, name: "Guilt-free Gaming Hour", cost: 30 },
+            { id: 102, name: "Treat: Ice Cream", cost: 50 }
+        ];
+        state.points = 0;
+        saveData();
     }
+    
+    // Call our quotes!
+    loadQuotes();
+    
     checkDailyUpdates();
     renderAll();
 }
@@ -91,14 +86,27 @@ function saveData() {
     updatePointsDisplay();
 }
 
-// UI Navigation
-function switchTab(tabName) {
-    document.querySelectorAll('.nav-links li').forEach(li => li.classList.remove('active'));
-    event.currentTarget.classList.add('active');
+// UI Navigation with Animation Support
+function switchTab(tabName, direction = 'fade') {
+    // 1. Safely highlight the correct navbar item without relying on mouse events
+    document.querySelectorAll('.nav-links li').forEach(li => {
+        li.classList.remove('active');
+        // If the li's onclick attribute contains our target tab, highlight it
+        if (li.getAttribute('onclick').includes(tabName)) {
+            li.classList.add('active');
+        }
+    });
 
-    document.querySelectorAll('.tab-view').forEach(view => view.classList.remove('active-view'));
-    document.getElementById(`view-${tabName}`).classList.add('active-view');
+    // 2. Hide all views and remove old animation classes
+    document.querySelectorAll('.tab-view').forEach(view => {
+        view.classList.remove('active-view', 'slide-left', 'slide-right', 'fade');
+    });
 
+    // 3. Show the new view and apply the requested animation
+    const activeView = document.getElementById(`view-${tabName}`);
+    activeView.classList.add('active-view', direction);
+
+    // 4. Update Header Title
     const titles = { week: "This Week", todos: "To-Do List", chores: "Chores", habits: "Habits", rewards: "Rewards" };
     document.getElementById('current-tab-title').innerText = titles[tabName];
     
@@ -818,11 +826,11 @@ function handleSwipe() {
 
         // Swipe Left (Go forward)
         if (swipeDistanceX < 0 && currentIndex < tabOrder.length - 1) {
-            switchTab(tabOrder[currentIndex + 1]);
+            switchTab(tabOrder[currentIndex + 1], 'slide-left');
         }
         // Swipe Right (Go backward)
         if (swipeDistanceX > 0 && currentIndex > 0) {
-            switchTab(tabOrder[currentIndex - 1]);
+            switchTab(tabOrder[currentIndex - 1], 'slide-right');
         }
     }
 }
