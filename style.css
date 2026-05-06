@@ -140,12 +140,25 @@ button {
     font-weight: bold;
 }
 
-.btn-primary { background-color: var(--accent); color: #121212; font-size: 18px;}
-.btn-primary:hover { transform: scale(0.95); }
-.btn-cancel { background-color: transparent; color: var(--text-main); border: 1px solid var(--text-muted); font-size: 18px;}
+.btn-primary { 
+    width: 38px; 
+    height: 38px; 
+    padding: 0 0 2px 0;
+    align-items: center; 
+    justify-content: center;
+    background-color: var(--accent); 
+    color: #121212; 
+    font-size: 18px; 
+    transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+.btn-primary:hover { transform: scale(0.8) rotate(360deg); }
+.btn-cancel { 
+    background-color: transparent; 
+    color: var(--text-main); 
+    border: 1px solid var(--text-muted); 
+    font-size: 18px;}
 .btn-cancel:hover  { transform: scale(0.95); background-color: var(--overdue)}
-.btn-edit { background-color: var(--edit); color: #fff; font-size: 20px; }
-.btn-edit:hover  { transform: scale(0.95);}
+.btn-edit { background-color: var(--edit); color: #fff; font-size: 20px; transition: transform 0.75s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+.btn-edit:hover  { transform: scale(0.95) rotateY(180deg);}
 
 /* Folders & Randomizer */
 .folder-header {
@@ -176,7 +189,6 @@ button {
     font-size: 1.2rem;
     transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
-
 .btn-random:hover { transform: scale(1.3) rotate(360deg); }
 
 .folder-content {
@@ -319,24 +331,25 @@ input, textarea {
 }
 
 .maintenance-actions {
-    float: right;
     display: flex;
-    gap: 8px;
+    gap: 5px;
     z-index: 15;
-    margin: 0 2.5rem 2rem 2rem;
+    justify-content: center;
+    margin: 0;
+    align-items: center;
 }
+
+.btn-backup {background-color: var(--edit); color: #fff; font-size: 20px;}
+.btn-backup:hover  { transform: scale(0.95); }
 
 .btn-restore {
     color: var(--text-main); 
     border: 1px solid var(--text-muted);
-    padding: 0.5rem 1rem;
     border-radius: 6px;
     font-weight: bold;
-    font-size: 0.8rem;
-    cursor: pointer;
     font-size: 20px;
+    padding: 0.43rem;
 }
-
 .btn-restore:hover  { transform: scale(0.95); }
 
 input[type="date"] {
@@ -379,7 +392,7 @@ input[type="date"] {
 
 /* Mobile Default */
 #quote-desktop { display: none; }
-#quote-mobile { display: block; margin-bottom: 1rem; }
+#quote-mobile { display: block; }
 
 /* Desktop Overrides */
 @media (min-width: 768px) {
@@ -402,24 +415,10 @@ input[type="date"] {
         left: 0;
         padding: 0.5rem;
     }
-    .maintenance-footer {
-        position: fixed;
-        bottom: 70px; /* Above mobile navbar */
-        left: 50%;
-        transform: translateX(-50%); /* This perfectly centers it */
-        display: flex;
-        gap: 5px;
-        z-index: 15;
-        width: 90vw; /* Keeps it within screen bounds */
-        justify-content: center;
-    }
-
-    /* Use 'vw' (viewport width) so font shrinks as screen shrinks */
-    .maintenance-footer button, 
-    .maintenance-footer label {
-        font-size: 3.5vw; 
-        padding: 0.4rem 0.6rem;
-        white-space: nowrap; /* Prevents text from wrapping to two lines */
+    .maintenance-actions button, .maintenance-actions label {
+    font-size: 3.5vw; 
+    padding: 0.4rem 0.6rem;
+    white-space: nowrap; 
     }
 }
 
@@ -459,4 +458,24 @@ input[type="date"] {
     0% { transform: rotate(0deg) scale(1); }
     50% { transform: rotate(180deg) scale(1.3); }
     100% { transform: rotate(360deg) scale(1); }
+}
+
+/* Tab View Animations */
+.tab-view.slide-left { animation: slideInLeft 0.25s ease-out forwards; }
+.tab-view.slide-right { animation: slideInRight 0.25s ease-out forwards; }
+.tab-view.fade { animation: simpleFade 0.2s ease-out forwards; }
+
+@keyframes slideInLeft {
+    from { opacity: 0; transform: translateX(30px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideInRight {
+    from { opacity: 0; transform: translateX(-30px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes simpleFade {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
 }
