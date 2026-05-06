@@ -9,6 +9,63 @@ let editingTaskId = null;
 let editingRewardId = null;
 let collapsedFolders = new Set();
 let shuffleInterval; // For the randomizer
+let currentSubtasks = []; // Holds subtasks temporarily while modal is open
+
+const DIFFICULTY_MAP = { trivial: 2, easy: 5, medium: 10, hard: 20, expert: 30 };
+
+function loadQuotes() {
+    fetch('quotes.txt')
+        .then(response => {
+            // If the file doesn't exist, this throws an error and jumps to .catch
+            if (!response.ok) throw new Error("File not found");
+            return response.text();
+        })
+        .then(text => {
+            // Split by line breaks and filter out any empty lines
+            const quotes = text.split(/\r?\n/).filter(line => line.trim() !== '');
+            if (quotes.length > 0) {
+                // Pick a random quote
+                const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
+                
+                // Inject it into both HTML locations
+                const qDesktop = document.getElementById('quote-desktop');
+                const qMobile = document.getElementById('quote-mobile');
+                if (qDesktop) qDesktop.innerText = `"${randomQuote}"`;
+                if (qMobile) qMobile.innerText = `"${randomQuote}"`;
+            }
+        })
+        .catch(err => {
+            // Silently fail if file isn't found - page acts like nothing is wrong
+            console.log("Quotes file not found or empty, skipping.");
+        });
+}
+
+function init() {
+    const savedData = localStorage.getItem('pocketBrownie');
+    if (savedData) {
+        state = JSON.parse(savedData);
+    } else {
+        // PRESET TUTORIAL DATA
+        state.tasks = [
+            { id: 1, title: "Welcome to Pocket Brownie! 🎉", type: "todos", difficulty: "trivial", folder: "Tutorial", notes: "Click the ✔ to complete this task!", createdDate: getTodayString() },
+            { id: 2, title: "Clean Bathroom", type: "chores", difficulty: "hard", recurType: "weekly", recurInterval: 1, dueDate: getTodayString(), subtasks: [{id: 11, title: "Clean Sink", completed: false}, {id: 12, title: "Clean Toilet", completed: false}], createdDate: getTodayString() },
+            { id: 3, title: "Drink Water", type: "habits", difficulty: "trivial", folder: "Health", notes: "Habits don't have due dates, do them anytime!", createdDate: getTodayString() }
+        ];
+        state.rewards = [
+            { id: 101, name: "Guilt-free Gaming Hour", cost: 30 },
+            { id: 102, name: "Treat: Ice Cream", cost: 50 }
+        ];
+        state.points = 0;
+        saveData();
+    }
+    checkDailyUpdates();
+    renderAll();
+}
+
+// Ensure points are always rounded down for display, keeping decimals hidden in state
+function updatePointsDisplay() {
+    document.getElementById('brownie-points').innerText = Math.floor(state.points);
+}
 
 // Helper to get local YYYY-MM-DD
 function getTodayString() {
@@ -31,7 +88,7 @@ function init() {
 
 function saveData() {
     localStorage.setItem('pocketBrownie', JSON.stringify(state));
-    document.getElementById('brownie-points').innerText = state.points;
+    updatePointsDisplay();
 }
 
 // UI Navigation
@@ -60,14 +117,16 @@ function toggleFolder(folderName) {
 // Modal Logic
 function openModal() {
     editingTaskId = null;
+    currentSubtasks = []; // Reset subtasks
     document.getElementById('modal-title').innerText = "Add New Item";
     document.getElementById('task-title').value = '';
-    document.getElementById('task-points').value = '';
+    document.getElementById('task-difficulty').value = 'medium'; // Default
     document.getElementById('task-date').value = '';
     document.getElementById('task-folder').value = '';
     document.getElementById('task-notes').value = '';
-    document.getElementById('task-recur-type').value = 'weekly';
-    document.getElementById('task-recur-days').value = '';
+    document.getElementById('new-subtask-title').value = '';
+    renderModalSubtasks();
+    
     document.getElementById('task-modal').style.display = 'flex';
     toggleCategoryFields();
 }
@@ -85,6 +144,7 @@ function toggleCategoryFields() {
     document.getElementById('folder-group').style.display = (type === 'todos') ? 'block' : 'none';
     document.getElementById('chore-group').style.display = (type === 'chores') ? 'block' : 'none';
     document.getElementById('task-recur-days').style.display = (recurType === 'interval') ? 'block' : 'none';
+    document.getElementById('subtasks-group').style.display = (type === 'chores') ? 'block' : 'none';
 }
 
 // Task Management
@@ -92,15 +152,18 @@ function saveTask() {
     const title = document.getElementById('task-title').value;
     if (!title) return alert("Task needs a title!");
 
+    const taskType = document.getElementById('task-category').value;
+    
     const taskData = {
         title: title,
-        type: document.getElementById('task-category').value,
-        points: parseInt(document.getElementById('task-points').value) || 0,
+        type: taskType,
+        difficulty: document.getElementById('task-difficulty').value,
         dueDate: document.getElementById('task-date').value,
         folder: document.getElementById('task-folder').value || 'Uncategorized',
         notes: document.getElementById('task-notes').value,
         recurType: document.getElementById('task-recur-type').value,
-        recurInterval: parseInt(document.getElementById('task-recur-days').value) || 1
+        recurInterval: parseInt(document.getElementById('task-recur-days').value) || 1,
+        subtasks: taskType === 'chores' ? [...currentSubtasks] : [] // Attach subtasks only to chores
     };
 
     if (editingTaskId) {
@@ -109,12 +172,7 @@ function saveTask() {
             state.tasks[taskIndex] = { ...state.tasks[taskIndex], ...taskData };
         }
     } else {
-        state.tasks.push({
-            id: Date.now(),
-            completed: false,
-            createdDate: getTodayString(),
-            ...taskData
-        });
+        state.tasks.push({ id: Date.now(), completed: false, createdDate: getTodayString(), ...taskData });
     }
 
     saveData();
@@ -127,16 +185,19 @@ function editTask(id) {
     if (!task) return;
 
     editingTaskId = id;
+    currentSubtasks = task.subtasks ? [...task.subtasks] : []; // Load existing subtasks
+    
     document.getElementById('modal-title').innerText = "Edit Item";
     document.getElementById('task-title').value = task.title;
     document.getElementById('task-category').value = task.type;
-    document.getElementById('task-points').value = task.points;
+    document.getElementById('task-difficulty').value = task.difficulty || 'medium';
     document.getElementById('task-date').value = task.dueDate || '';
     document.getElementById('task-folder').value = task.folder || '';
     document.getElementById('task-notes').value = task.notes || '';
     document.getElementById('task-recur-type').value = task.recurType || 'weekly';
     document.getElementById('task-recur-days').value = task.recurInterval || '';
     
+    renderModalSubtasks();
     toggleCategoryFields();
     document.getElementById('task-modal').style.display = 'flex';
 }
@@ -145,40 +206,46 @@ function toggleTaskComplete(id) {
     const task = state.tasks.find(t => t.id === id);
     if (!task) return;
 
+    let pts = calculateTaskPoints(task);
+
     if (!task.completed) {
+        // Complete main task and all its subtasks
+        if (task.subtasks && task.subtasks.length > 0) {
+            let subPts = pts / task.subtasks.length;
+            task.subtasks.forEach(s => {
+                if (!s.completed) {
+                    s.completed = true;
+                    state.points += subPts;
+                }
+            });
+        } else {
+            state.points += pts;
+        }
         task.completed = true;
-        state.points += task.points;
-        
-        // NEW: Trigger a 50ms vibration when a task is completed!
-        if (navigator.vibrate) {
-            navigator.vibrate(50); 
-        }
+        if (navigator.vibrate) navigator.vibrate(50);
+        // NEW: Trigger celebration, THEN render and save
+        triggerCelebration(id, () => {
+            handleChoreRecurrence(task);
+            saveData();
+            renderAll();
+        });
+        return;
     } else {
-        task.completed = false;
-        state.points -= task.points;
-    }
-
-    if (task.type === 'chores' && task.completed && task.dueDate) {
-        let parts = task.dueDate.split('-');
-        let currentDue = new Date(parts[0], parts[1] - 1, parts[2]);
-        
-        if (task.recurType === 'weekly') {
-            currentDue.setDate(currentDue.getDate() + 7);
-        } else if (task.recurType === 'monthly') {
-            currentDue.setMonth(currentDue.getMonth() + 1);
-        } else if (task.recurType === 'interval') {
-            currentDue.setDate(currentDue.getDate() + task.recurInterval);
+        // Uncomplete task
+        if (task.subtasks && task.subtasks.length > 0) {
+            let subPts = pts / task.subtasks.length;
+            task.subtasks.forEach(s => {
+                if (s.completed) {
+                    s.completed = false;
+                    state.points -= subPts;
+                }
+            });
+        } else {
+            state.points -= pts;
         }
-
-        const yyyy = currentDue.getFullYear();
-        const mm = String(currentDue.getMonth() + 1).padStart(2, '0');
-        const dd = String(currentDue.getDate()).padStart(2, '0');
-        
-        task.dueDate = `${yyyy}-${mm}-${dd}`;
-        task.completed = false; 
+        task.completed = false;
     }
-
-    saveData();
+    saveData(); 
     renderAll();
 }
 
@@ -197,15 +264,98 @@ function checkDailyUpdates() {
     });
 }
 
-function getTaskHTML(task) {
-    const today = getTodayString();
-    let statusClass = task.completed ? 'completed' : '';
-    if (!task.completed && task.dueDate) {
-        if (task.dueDate === today) statusClass = 'due-today';
-        if (task.dueDate < today) statusClass = 'overdue';
+function toggleSubtaskComplete(taskId, subtaskId) {
+    const task = state.tasks.find(t => t.id === taskId);
+    const subtask = task.subtasks.find(s => s.id === subtaskId);
+    
+    let totalPts = calculateTaskPoints(task);
+    let subPts = totalPts / task.subtasks.length;
+
+    if (!subtask.completed) {
+        subtask.completed = true;
+        state.points += subPts;
+        if (navigator.vibrate) navigator.vibrate(20);
+    } else {
+        subtask.completed = false;
+        state.points -= subPts;
     }
 
-    let subtext = `${task.type === 'todos' ? task.folder : ''} ${task.dueDate ? '| Due: ' + task.dueDate : ''}`;
+    // Auto-complete main task if all subtasks are checked
+    let allDone = task.subtasks.every(s => s.completed);
+    if (allDone && !task.completed) {
+        task.completed = true;
+        if (navigator.vibrate) navigator.vibrate(50);
+        setTimeout(() => {
+            handleChoreRecurrence(task);
+            saveData(); 
+            renderAll();
+        }, 150); // tiny delay so the user sees the final checkbox get ticked
+        return; // handleChoreRecurrence already calls renderAll
+    } else if (!allDone && task.completed) {
+        task.completed = false;
+    }
+    
+    saveData(); 
+    renderAll();
+}
+
+function handleChoreRecurrence(task) {
+    if (task.type === 'chores' && task.dueDate) {
+        let parts = task.dueDate.split('-');
+        let currentDue = new Date(parts[0], parts[1] - 1, parts[2]);
+        
+        if (task.recurType === 'weekly') currentDue.setDate(currentDue.getDate() + 7);
+        else if (task.recurType === 'monthly') currentDue.setMonth(currentDue.getMonth() + 1);
+        else if (task.recurType === 'interval') currentDue.setDate(currentDue.getDate() + task.recurInterval);
+
+        const yyyy = currentDue.getFullYear();
+        const mm = String(currentDue.getMonth() + 1).padStart(2, '0');
+        const dd = String(currentDue.getDate()).padStart(2, '0');
+        
+        task.dueDate = `${yyyy}-${mm}-${dd}`;
+        task.completed = false; 
+        
+        // Reset subtasks for the new cycle
+        if (task.subtasks) {
+            task.subtasks.forEach(s => s.completed = false);
+        }
+    }
+}
+
+function getTaskHTML(task) {
+    let statusClass = task.completed ? 'completed' : '';
+    let relDate = getRelativeDateString(task.dueDate);
+    
+    if (!task.completed && task.dueDate) {
+        if (relDate === 'Due today') statusClass = 'due-today';
+        if (relDate === 'Overdue') statusClass = 'overdue';
+    }
+
+    // Points Display Math
+    let ptsValue = calculateTaskPoints(task);
+    let isOverdue = (relDate === 'Overdue' && !task.completed);
+    let ptsDisplay = `+${ptsValue}`;
+    if (isOverdue) ptsDisplay += ` (Half pts)`;
+
+    // Subtasks HTML
+    let subtasksHTML = '';
+    if (task.type === 'chores' && task.subtasks && task.subtasks.length > 0) {
+        subtasksHTML = '<div class="subtasks-container" style="margin-top: 10px; border-top: 1px solid #333; padding-top: 10px;">';
+        task.subtasks.forEach(sub => {
+            let checked = sub.completed ? 'checked' : '';
+            let textClass = sub.completed ? 'style="text-decoration:line-through; opacity:0.6;"' : '';
+            subtasksHTML += `
+                <label style="display:flex; align-items:center; gap:8px; margin-bottom: 6px; font-size:0.95rem; cursor:pointer;">
+                    <input type="checkbox" ${checked} onchange="toggleSubtaskComplete(${task.id}, ${sub.id})" style="transform: scale(1.3); cursor:pointer;">
+                    <span ${textClass}>${sub.title}</span>
+                </label>
+            `;
+        });
+        subtasksHTML += '</div>';
+        ptsDisplay = `${ptsValue} pts total`; // Change formatting if divided
+    }
+
+    let subtext = `${task.type === 'todos' ? task.folder : ''} ${task.dueDate ? '| ' + relDate : ''}`;
     if (task.type === 'chores') {
         if (task.recurType === 'weekly') subtext += ' (Weekly)';
         else if (task.recurType === 'monthly') subtext += ' (Monthly)';
@@ -214,23 +364,32 @@ function getTaskHTML(task) {
 
     return `
         <div class="task-item ${statusClass}">
-            <div class="task-info">
-                <h4>${task.title} <span>(${task.points > 0 ? '+' : ''}${task.points} pts)</span></h4>
-                <small>${subtext}</small>
-                ${task.notes ? `<small><em>${task.notes}</em></small>` : ''}
+            
+            <!-- Top Row: Info and Buttons -->
+            <div class="task-top-row">
+                <div class="task-info">
+                    <h4 style="margin-bottom:4px;">${task.title} <span style="font-weight:normal; font-size:0.8rem; color:var(--accent);">(${ptsDisplay})</span></h4>
+                    <small>${subtext}</small>
+                    ${task.notes ? `<small><em>${task.notes}</em></small>` : ''}
+                </div>
+                
+                <div class="task-actions" style="margin-left: 10px;">
+                    <button class="btn-primary" id="btn-complete-${task.id}" onclick="toggleTaskComplete(${task.id})">✔</button>
+                    <button class="btn-edit" onclick="editTask(${task.id})">✎</button>
+                    <button class="btn-cancel" onclick="deleteTask(${task.id})">🗑</button>
+                </div>
             </div>
-            <div class="task-actions">
-                <button class="btn-primary" onclick="toggleTaskComplete(${task.id})">✔</button>
-                <button class="btn-edit" onclick="editTask(${task.id})">✎</button>
-                <button class="btn-cancel" onclick="deleteTask(${task.id})">🗑</button>
-            </div>
+
+            <!-- Bottom Row: Subtasks (Will be completely empty/invisible if there are no subtasks) -->
+            ${subtasksHTML}
+            
         </div>
     `;
 }
 
 // Rendering Tasks & Sorting
 function renderAll() {
-    document.getElementById('brownie-points').innerText = state.points;
+    updatePointsDisplay();
     const today = getTodayString();
     
     // Sort logic: First by Date, then Alphabetically if no date
@@ -404,7 +563,7 @@ function renderRewards() {
     container.innerHTML = '';
     state.rewards.forEach(reward => {
         container.innerHTML += `
-            <div class="task-item">
+            <div class="reward-item">
                 <div class="task-info">
                     <h4>${reward.name}</h4>
                     <small>Cost: ${reward.cost} pts</small>
@@ -467,6 +626,205 @@ function importData(event) {
         }
     };
     reader.readAsText(file);
+}
+
+function calculateTaskPoints(task) {
+    // Fallback for old tasks that used manual numbers before the update
+    if (!task.difficulty && task.points) return task.points; 
+    
+    let base = DIFFICULTY_MAP[task.difficulty] || 0;
+    
+    // Halve points once if overdue
+    const today = getTodayString();
+    if (task.dueDate && task.dueDate < today) {
+        base = base / 2;
+    }
+    return base;
+}
+
+function getRelativeDateString(dueDate) {
+    if (!dueDate) return "";
+    const due = new Date(dueDate.split('-')[0], dueDate.split('-')[1] - 1, dueDate.split('-')[2]);
+    const now = new Date(getTodayString().split('-')[0], getTodayString().split('-')[1] - 1, getTodayString().split('-')[2]);
+    
+    const diffDays = Math.ceil((due - now) / (1000 * 60 * 60 * 24));
+    
+    if (diffDays < 0) return "Overdue";
+    if (diffDays === 0) return "Due today";
+    if (diffDays === 1) return "Due tomorrow";
+    return `Due in ${diffDays} days`;
+}
+
+function renderModalSubtasks() {
+    const list = document.getElementById('modal-subtask-list');
+    list.innerHTML = '';
+    currentSubtasks.forEach((sub, index) => {
+        list.innerHTML += `
+            <li style="display:flex; justify-content:space-between; align-items:center; background:var(--bg-panel); padding:6px; border-radius:4px;">
+                <span style="font-size:0.9rem;">${sub.title}</span>
+                <button class="btn-cancel" style="padding:2px 6px; font-size:0.8rem;" onclick="removeModalSubtask(event, ${index})">✕</button>
+            </li>
+        `;
+    });
+}
+
+function addModalSubtask(event) {
+    event.preventDefault(); // Stop modal from closing
+    const input = document.getElementById('new-subtask-title');
+    if (input.value.trim()) {
+        currentSubtasks.push({ id: Date.now() + Math.random(), title: input.value.trim(), completed: false });
+        input.value = '';
+        renderModalSubtasks();
+    }
+}
+
+function removeModalSubtask(event, index) {
+    event.preventDefault();
+    currentSubtasks.splice(index, 1);
+    renderModalSubtasks();
+}
+
+// --- CELEBRATION EFFECTS ---
+
+// 1. Synthesize a happy "Ding!" sound offline
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+function playDing() {
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const oscillator = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+    
+    oscillator.type = 'sine';
+    // Start at a high pitch (A5) and slide up rapidly to an even higher pitch (A6)
+    oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); 
+    oscillator.frequency.exponentialRampToValueAtTime(1760, audioCtx.currentTime + 0.1); 
+    
+    gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime); // Volume
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3); // Fade out
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+    oscillator.start();
+    oscillator.stop(audioCtx.currentTime + 0.3);
+}
+
+// 2. Native, offline confetti particle system
+// Updated to accept X and Y coordinates
+function fireConfetti(x, y) {
+    const colors = ['#d4a373', '#e76f51', '#2a9d8f', '#e0e0e0', '#f4a261'];
+    for (let i = 0; i < 40; i++) {
+        let confetti = document.createElement('div');
+        confetti.style.position = 'fixed';
+        confetti.style.width = '7px';
+        confetti.style.height = '7px';
+        confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+        
+        // Start exactly at the button's center
+        confetti.style.top = y + 'px';
+        confetti.style.left = x + 'px';
+        
+        confetti.style.zIndex = '9999';
+        confetti.style.pointerEvents = 'none';
+        confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px'; 
+        
+        document.body.appendChild(confetti);
+
+        let angle = Math.random() * Math.PI * 2;
+        let velocity = 6 + Math.random() * 12; // Explosive speed
+        let vx = Math.cos(angle) * velocity;
+        let vy = Math.sin(angle) * velocity - 5; 
+
+        let opacity = 1;
+
+        function animate() {
+            vy += 0.4; // Gravity
+            let currentTop = parseFloat(confetti.style.top);
+            let currentLeft = parseFloat(confetti.style.left);
+            confetti.style.top = (currentTop + vy) + 'px';
+            confetti.style.left = (currentLeft + vx) + 'px';
+            
+            opacity -= 0.02;
+            confetti.style.opacity = opacity;
+
+            if (opacity > 0) {
+                requestAnimationFrame(animate);
+            } else {
+                confetti.remove();
+            }
+        }
+        requestAnimationFrame(animate);
+    }
+}
+
+function triggerCelebration(taskId, callback) {
+    playDing();
+    
+    const btn = document.getElementById(`btn-complete-${taskId}`);
+    if (btn) {
+        // Find the button's position on the screen
+        const rect = btn.getBoundingClientRect();
+        const centerX = rect.left + (rect.width / 2);
+        const centerY = rect.top + (rect.height / 2);
+        
+        // Fire confetti from that center point
+        fireConfetti(centerX, centerY);
+        
+        btn.classList.add('spin-anim');
+        setTimeout(callback, 400); 
+    } else {
+        callback();
+    }
+}
+
+// --- SWIPE NAVIGATION LOGIC ---
+let touchStartX = 0;
+let touchEndX = 0;
+let touchStartY = 0;
+let touchEndY = 0;
+
+// Order of your tabs for swiping
+const tabOrder = ['week', 'todos', 'chores', 'habits', 'rewards'];
+
+// Listen to the main content area so swiping on the navbar doesn't trigger it
+const contentArea = document.querySelector('.content');
+
+contentArea.addEventListener('touchstart', e => {
+    touchStartX = e.changedTouches[0].screenX;
+    touchStartY = e.changedTouches[0].screenY;
+});
+
+contentArea.addEventListener('touchend', e => {
+    touchEndX = e.changedTouches[0].screenX;
+    touchEndY = e.changedTouches[0].screenY;
+    handleSwipe();
+});
+
+function handleSwipe() {
+    const swipeDistanceX = touchEndX - touchStartX;
+    const swipeDistanceY = Math.abs(touchEndY - touchStartY);
+    
+    // We only trigger if the horizontal swipe is greater than 50px
+    // AND the vertical scroll is less than 50px (so scrolling down doesn't accidentally switch tabs)
+    if (Math.abs(swipeDistanceX) > 50 && swipeDistanceY < 50) {
+        // Find which tab is currently active
+        const currentActive = document.querySelector('.nav-links li.active');
+        let currentIndex = 0;
+        
+        // Match the active tab to our tabOrder array
+        tabOrder.forEach((tab, index) => {
+            if (currentActive.getAttribute('onclick').includes(tab)) {
+                currentIndex = index;
+            }
+        });
+
+        // Swipe Left (Go forward)
+        if (swipeDistanceX < 0 && currentIndex < tabOrder.length - 1) {
+            switchTab(tabOrder[currentIndex + 1]);
+        }
+        // Swipe Right (Go backward)
+        if (swipeDistanceX > 0 && currentIndex > 0) {
+            switchTab(tabOrder[currentIndex - 1]);
+        }
+    }
 }
 
 // Start app
