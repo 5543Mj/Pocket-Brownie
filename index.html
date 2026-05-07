@@ -16,9 +16,9 @@
             <span class="nav-icon" style="-webkit-mask-image: url('img/pocket.svg'); mask-image: url('img/pocket.svg'); width: 50px; height: 50px;">
             </span>Pocket Brownie</h1>
             <ul class="nav-links">
-                <li class="active" onclick="switchTab('week')">
-                    <span class="nav-icon" style="-webkit-mask-image: url('img/week.svg'); mask-image: url('img/week.svg');">
-                    </span>Week</li>
+                <li class="active" onclick="switchTab('calender')">
+                    <span class="nav-icon" style="-webkit-mask-image: url('img/calender.svg'); mask-image: url('img/calender.svg');">
+                    </span>Calender</li>
                 <li onclick="switchTab('todos')">
                     <span class="nav-icon" style="-webkit-mask-image: url('img/list-check.svg'); mask-image: url('img/list-check.svg');">
                     </span>To-Dos</li>
@@ -38,7 +38,7 @@
         <main class="content">
             <header class="top-bar">
                 <span class="head-icon"></span>
-                <h2 id="current-tab-title">This Week</h2>
+                <h2 id="current-tab-title">Calender</h2>
                 <div class="header-actions">
                     <div class="points-display">
                         <span>Points: </span>
@@ -49,8 +49,8 @@
             </header>
 
             <!-- Views -->
-            <section id="view-week" class="tab-view active-view">
-                <div id="list-week" class="task-list"></div>
+            <section id="view-calender" class="tab-view active-view">
+                <div id="list-calender" class="task-list"></div>
             </section>
 
             <section id="view-todos" class="tab-view">
@@ -116,7 +116,7 @@
             <div id="subtasks-group" style="display:none; background: var(--bg-dark); padding: 10px; border-radius: 6px; border: 1px solid #333;">
                 <label style="font-size: 0.85rem; color: var(--text-muted);">Divided Subtasks:</label>
                 <div style="display:flex; gap:5px; margin-top:5px;">
-                    <input type="text" id="new-subtask-title" placeholder="Add a subtask...">
+                    <input type="text" id="new-subtask-title" placeholder="Add a subtask..." onkeydown="if(event.key === 'Enter') addModalSubtask(event)">
                     <button class="btn-primary" onclick="addModalSubtask(event)">+</button>
                 </div>
                 <ul id="modal-subtask-list" style="list-style:none; padding:0; margin-top:10px; display:flex; flex-direction:column; gap:5px;"></ul>
@@ -137,12 +137,20 @@
                 </select>
                 <input type="number" id="task-recur-days" placeholder="Every X days" style="display:none; margin-top: 0.5rem;">
             </div>
-
+            <div id="habit-group" style="display:none;">
+                <label>Counter Resets:</label>
+                <select id="task-habit-reset">
+                    <option value="daily">Daily</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option>
+                    <option value="never">Never</option>
+                </select>
+            </div>
             <textarea id="task-notes" placeholder="Notes..."></textarea>
             
             <div class="modal-actions">
                 <button class="btn-cancel" onclick="closeModal()">Cancel</button>
-                <button class="btn-primary" onclick="saveTask()">Save</button>
+                <button class="btn-primary" onclick="saveTask()">✔</button>
             </div>
         </div>
     </div>
@@ -157,7 +165,7 @@
             </div>
             
             <div class="modal-actions" style="justify-content: center; margin-top: 2rem;">
-                <button class="btn-primary" id="btn-close-random" onclick="closeRandomModal()" style="display:none;">Let's Do It!</button>
+                <button class="btn-backup" id="btn-close-random" onclick="closeRandomModal()" style="display:none;">Let's Do It!</button>
             </div>
         </div>
     </div>
