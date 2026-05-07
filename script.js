@@ -62,13 +62,21 @@ function init() {
     } else {
         // PRESET TUTORIAL DATA
         state.tasks = [
-            { id: 1, title: "Welcome to Pocket Brownie! 🎉", type: "todos", difficulty: "trivial", folder: "Tutorial", notes: "Click the ✔ to complete this task!", createdDate: getTodayString() },
-            { id: 2, title: "Clean Bathroom", type: "chores", difficulty: "hard", recurType: "weekly", recurInterval: 1, dueDate: getTodayString(), subtasks: [{id: 11, title: "Clean Sink", completed: false}, {id: 12, title: "Clean Toilet", completed: false}], createdDate: getTodayString() },
-            { id: 3, title: "Drink Water", type: "habits", difficulty: "trivial", folder: "Health", notes: "Habits don't have due dates, do them anytime!", createdDate: getTodayString() }
+            { id: 1, title: "Welcome to Pocket Brownie! 🎉", type: "todos", 
+                difficulty: "trivial", folder: "Tutorial", notes: "Click the ✔ to complete this task!", 
+                createdDate: getTodayString() },
+            { id: 2, title: "Clean Bathroom", type: "chores", 
+                difficulty: "hard", recurType: "weekly", recurInterval: 1, 
+                dueDate: getTodayString(), subtasks: [{id: 11, title: "Clean Sink", 
+                completed: false}, {id: 12, title: "Clean Toilet", completed: false}], 
+                createdDate: getTodayString() },
+            { id: 3, title: "Drink Water", type: "habits", difficulty: "trivial", 
+                folder: "Health", notes: "Habits don't have due dates, do them anytime!", 
+                "habitReset": "daily", "habitCount": 0, createdDate: getTodayString() }
         ];
         state.rewards = [
             { id: 101, name: "Guilt-free Gaming Hour", cost: 30 },
-            { id: 102, name: "Treat: Ice Cream", cost: 50 }
+            { id: 102, name: "Treat", cost: 50 }
         ];
         state.points = 0;
         saveData();
@@ -107,7 +115,7 @@ function switchTab(tabName, direction = 'fade') {
     activeView.classList.add('active-view', direction);
 
     // 4. Update Header Title
-    const titles = { week: "This Week", todos: "To-Do List", chores: "Chores", habits: "Habits", rewards: "Rewards" };
+    const titles = { calender: "Upcoming Tasks", todos: "To-Do List", chores: "Chores", habits: "Habits", rewards: "Rewards" };
     document.getElementById('current-tab-title').innerText = titles[tabName];
     
     renderAll();
@@ -133,10 +141,11 @@ function openModal() {
     document.getElementById('task-folder').value = '';
     document.getElementById('task-notes').value = '';
     document.getElementById('new-subtask-title').value = '';
+    document.getElementById('task-habit-reset').value = 'daily'; 
+
     renderModalSubtasks();
-    
     document.getElementById('task-modal').style.display = 'flex';
-    toggleCategoryFields();
+    toggleCategoryFields()
 }
 
 function closeModal() {
@@ -152,6 +161,7 @@ function toggleCategoryFields() {
     document.getElementById('folder-group').style.display = (type === 'todos') ? 'block' : 'none';
     document.getElementById('chore-group').style.display = (type === 'chores') ? 'block' : 'none';
     document.getElementById('task-recur-days').style.display = (recurType === 'interval') ? 'block' : 'none';
+    document.getElementById('habit-group').style.display = (type === 'habits') ? 'block' : 'none';
     document.getElementById('subtasks-group').style.display = (type === 'chores') ? 'block' : 'none';
 }
 
@@ -171,7 +181,10 @@ function saveTask() {
         notes: document.getElementById('task-notes').value,
         recurType: document.getElementById('task-recur-type').value,
         recurInterval: parseInt(document.getElementById('task-recur-days').value) || 1,
-        subtasks: taskType === 'chores' ? [...currentSubtasks] : [] // Attach subtasks only to chores
+        subtasks: taskType === 'chores' ? [...currentSubtasks] : [],
+        habitReset: document.getElementById('task-habit-reset').value,
+        habitCount: editingTaskId ? (state.tasks.find(t=>t.id===editingTaskId).habitCount || 0) : 0,
+        lastResetDate: editingTaskId ? (state.tasks.find(t=>t.id===editingTaskId).lastResetDate || getTodayString()) : getTodayString()
     };
 
     if (editingTaskId) {
@@ -204,6 +217,7 @@ function editTask(id) {
     document.getElementById('task-notes').value = task.notes || '';
     document.getElementById('task-recur-type').value = task.recurType || 'weekly';
     document.getElementById('task-recur-days').value = task.recurInterval || '';
+    document.getElementById('task-habit-reset').value = task.habitReset || 'daily';
     
     renderModalSubtasks();
     toggleCategoryFields();
@@ -215,6 +229,19 @@ function toggleTaskComplete(id) {
     if (!task) return;
 
     let pts = calculateTaskPoints(task);
+
+    if (task.type === 'habits') {
+        task.habitCount = (task.habitCount || 0) + 1;
+        state.points += pts;
+        
+        if (navigator.vibrate) navigator.vibrate(50);
+        
+        triggerCelebration(id, () => {
+            saveData();
+            renderAll();
+        });
+        return; // Stop the rest of the function from running
+    }
 
     if (!task.completed) {
         // Complete main task and all its subtasks
@@ -239,7 +266,7 @@ function toggleTaskComplete(id) {
         });
         return;
     } else {
-        // Uncomplete task
+        // Incomplete task
         if (task.subtasks && task.subtasks.length > 0) {
             let subPts = pts / task.subtasks.length;
             task.subtasks.forEach(s => {
@@ -264,12 +291,43 @@ function deleteTask(id) {
 }
 
 function checkDailyUpdates() {
+    let dataChanged = false;
     const today = getTodayString();
+    
+    state.tasks.forEach(task => {
+        // Handle Habit Resets
+        if (task.type === 'habits' && task.habitReset && task.habitReset !== 'never') {
+            if (!task.lastResetDate) task.lastResetDate = task.createdDate || today;
+
+            let shouldReset = false;
+            // Create proper Date objects for accurate math
+            const lastDate = new Date(task.lastResetDate + 'T00:00:00');
+            const currDate = new Date(today + 'T00:00:00');
+
+            if (task.habitReset === 'daily' && today > task.lastResetDate) {
+                shouldReset = true;
+            } else if (task.habitReset === 'weekly') {
+                const diffDays = Math.floor((currDate - lastDate) / (1000 * 60 * 60 * 24));
+                if (diffDays >= 7) shouldReset = true;
+            } else if (task.habitReset === 'monthly') {
+                if (currDate.getMonth() !== lastDate.getMonth() || currDate.getFullYear() !== lastDate.getFullYear()) {
+                    shouldReset = true;
+                }
+            }
+
+            if (shouldReset) {
+                task.habitCount = 0;
+                task.lastResetDate = today;
+                dataChanged = true;
+            }
+        }
+    });
     state.tasks.forEach(task => {
         if (!task.completed && task.dueDate && task.dueDate < today) {
             // Future decay logic
         }
     });
+    if (dataChanged) saveData();
 }
 
 function toggleSubtaskComplete(taskId, subtaskId) {
@@ -330,6 +388,18 @@ function handleChoreRecurrence(task) {
     }
 }
 
+function undoHabit(id) {
+    const task = state.tasks.find(t => t.id === id);
+    if (!task || task.type !== 'habits') return;
+    
+    if ((task.habitCount || 0) > 0) {
+        task.habitCount -= 1;
+        state.points -= calculateTaskPoints(task);
+        saveData();
+        renderAll();
+    }
+}
+
 function getTaskHTML(task) {
     let statusClass = task.completed ? 'completed' : '';
     let relDate = getRelativeDateString(task.dueDate);
@@ -364,16 +434,24 @@ function getTaskHTML(task) {
     }
 
     let subtext = `${task.type === 'todos' ? task.folder : ''} ${task.dueDate ? '| ' + relDate : ''}`;
+    let completeBtnHTML = `<button class="btn-primary" id="btn-complete-${task.id}" onclick="toggleTaskComplete(${task.id})">✔</button>`;
     if (task.type === 'chores') {
         if (task.recurType === 'weekly') subtext += ' (Weekly)';
         else if (task.recurType === 'monthly') subtext += ' (Monthly)';
         else if (task.recurType === 'interval') subtext += ` (Every ${task.recurInterval} days)`;
+    } else if (task.type === 'habits') {
+        // NEW: Habit specific text and buttons
+        let count = task.habitCount || 0;
+        let resetText = task.habitReset ? task.habitReset.charAt(0).toUpperCase() + task.habitReset.slice(1) : 'Daily';
+        subtext = `Resets: ${resetText} | <strong style="color:var(--accent);">${count}</strong>`;
+        completeBtnHTML = `
+            <button class="btn-cancel" onclick="undoHabit(${task.id})" style="width:36px; height:36px; padding:0; display:inline-flex; justify-content:center; align-items:center;" title="Undo">-</button>
+            <button class="btn-primary" id="btn-complete-${task.id}" onclick="toggleTaskComplete(${task.id})">➕</button>
+        `;
     }
 
     return `
         <div class="task-item ${statusClass}">
-            
-            <!-- Top Row: Info and Buttons -->
             <div class="task-top-row">
                 <div class="task-info">
                     <h4 style="margin-bottom:4px;">${task.title} <span style="font-weight:normal; font-size:0.8rem; color:var(--accent);">(${ptsDisplay})</span></h4>
@@ -382,15 +460,12 @@ function getTaskHTML(task) {
                 </div>
                 
                 <div class="task-actions" style="margin-left: 10px;">
-                    <button class="btn-primary" id="btn-complete-${task.id}" onclick="toggleTaskComplete(${task.id})">✔</button>
+                    ${completeBtnHTML}
                     <button class="btn-edit" onclick="editTask(${task.id})">✎</button>
                     <button class="btn-cancel" onclick="deleteTask(${task.id})">🗑</button>
                 </div>
             </div>
-
-            <!-- Bottom Row: Subtasks (Will be completely empty/invisible if there are no subtasks) -->
             ${subtasksHTML}
-            
         </div>
     `;
 }
@@ -400,36 +475,115 @@ function renderAll() {
     updatePointsDisplay();
     const today = getTodayString();
     
-    // Sort logic: First by Date, then Alphabetically if no date
+    // Sort logic: Date -> Points (Descending) -> Alphabetical
     const sortedTasks = [...state.tasks].sort((a, b) => {
-        if (a.dueDate && b.dueDate) return new Date(a.dueDate) - new Date(b.dueDate);
-        if (a.dueDate) return -1;
-        if (b.dueDate) return 1;
+        // 1. Sort by Due Date first
+        if (a.dueDate && b.dueDate) {
+            const dateA = new Date(a.dueDate);
+            const dateB = new Date(b.dueDate);
+            if (dateA < dateB) return -1;
+            if (dateA > dateB) return 1;
+        } else if (a.dueDate) {
+            return -1; // 'a' has a date, push it up
+        } else if (b.dueDate) {
+            return 1;  // 'b' has a date, push it up
+        }
+        
+        // 2. If dates match (or neither has a date), sort by Points (highest first)
+        const ptsA = calculateTaskPoints(a);
+        const ptsB = calculateTaskPoints(b);
+        if (ptsB !== ptsA) {
+            return ptsB - ptsA; 
+        }
+        
+        // 3. Fallback to alphabetical if everything else is tied
         return a.title.localeCompare(b.title);
     });
 
-    const lists = { week: [], todos: [], chores: [], habits: [] };
+    const lists = { calender: [], todos: [], chores: [], habits: [] };
 
     sortedTasks.forEach(task => {
-        if (task.dueDate) {
-            let due = new Date(task.dueDate);
-            let now = new Date(today);
-            let diffDays = Math.ceil((due - now) / (1000 * 60 * 60 * 24));
-            
-            // Fixed Week Calendar Logic
-            if ((diffDays >= 0 && diffDays <= 7) || (diffDays < 0 && !task.completed)) {
-                lists.week.push(task);
-            }
+        
+        // NEW: "Upcoming" Dashboard Logic
+        let isHabitZero = task.type === 'habits' && (task.habitCount || 0) === 0;
+        let isPendingTaskWithDate = (task.type === 'todos' || task.type === 'chores') && task.dueDate && !task.completed;
+        
+        // Push everything that matches into the first tab
+        if (isPendingTaskWithDate || isHabitZero) {
+            lists.calender.push(task); 
         }
+
+        // Standard Tab Logic
         if(task.type === 'todos') lists.todos.push(task);
         if(task.type === 'chores') lists.chores.push(task);
         if(task.type === 'habits') lists.habits.push(task);
     });
 
-    ['week', 'chores', 'habits'].forEach(type => {
+    // Render Chores and Habits normally
+    ['chores', 'habits'].forEach(type => {
         const container = document.getElementById(`list-${type}`);
         container.innerHTML = lists[type].map(task => getTaskHTML(task)).join('');
     });
+
+    // NEW: Render Dashboard (Calender) with Collapsible Date Folders
+    const calenderContainer = document.getElementById('list-calender');
+    const dateGroups = {
+        "Overdue": [],
+        "Today": [],
+        "Tomorrow": [],
+        "Upcoming": []
+    };
+
+    lists.calender.forEach(task => {
+        // Zero-count habits go into Today so you see them immediately
+        if (task.type === 'habits') {
+            dateGroups["Today"].push(task); 
+        } else if (task.dueDate) {
+            let due = new Date(task.dueDate);
+            let now = new Date(today);
+            let diffDays = Math.ceil((due - now) / (1000 * 60 * 60 * 24));
+            
+            if (diffDays < 0) dateGroups["Overdue"].push(task);
+            else if (diffDays === 0) dateGroups["Today"].push(task);
+            else if (diffDays === 1) dateGroups["Tomorrow"].push(task);
+            else dateGroups["Upcoming"].push(task);
+        }
+    });
+
+    let calenderHTML = '';
+    const groupOrder = ["Overdue", "Today", "Tomorrow", "Upcoming"];
+
+    groupOrder.forEach(groupName => {
+        if (dateGroups[groupName].length > 0) {
+            // We give these folders a "dash-" prefix so they don't accidentally link to To-Do folders with the same name
+            const folderKey = `dash-${groupName}`;
+            const isCollapsed = collapsedFolders.has(folderKey);
+            
+            // Add custom colors to the folder titles to make urgent items pop!
+            let titleColor = 'var(--text-main)';
+            if (groupName === 'Overdue') titleColor = 'var(--overdue)';
+            if (groupName === 'Today') titleColor = 'var(--due-today)';
+
+            calenderHTML += `
+                <div class="folder-header" onclick="toggleFolder('${folderKey}')">
+                    <span style="color: ${titleColor};">${groupName}</span>
+                    <div class="folder-header-actions">
+                        <span class="caret ${isCollapsed ? 'collapsed' : ''}">▼</span>
+                    </div>
+                </div>
+                <div class="folder-content ${isCollapsed ? 'collapsed' : ''}">
+                    ${dateGroups[groupName].map(task => getTaskHTML(task)).join('')}
+                </div>
+            `;
+        }
+    });
+
+    // Friendly empty state
+    if (calenderHTML === '') {
+        calenderHTML = `<p style="text-align:center; color:var(--text-muted); margin-top:2rem;">All caught up! 🎉</p>`;
+    }
+
+    calenderContainer.innerHTML = calenderHTML;
 
     // Render To-Dos (Grouped by Folder and Sorted Alphabetically)
     const todosContainer = document.getElementById('list-todos');
@@ -535,7 +689,7 @@ function editReward(id) {
     editingRewardId = id;
     document.getElementById('reward-name').value = reward.name;
     document.getElementById('reward-cost').value = reward.cost;
-    document.getElementById('btn-add-reward').innerText = "Save Changes";
+    document.getElementById('btn-add-reward').innerText = "+";
     document.getElementById('btn-cancel-reward').style.display = "inline-block";
 }
 
@@ -543,7 +697,7 @@ function cancelEditReward() {
     editingRewardId = null;
     document.getElementById('reward-name').value = '';
     document.getElementById('reward-cost').value = '';
-    document.getElementById('btn-add-reward').innerText = "Add Reward";
+    document.getElementById('btn-add-reward').innerText = "+";
     document.getElementById('btn-cancel-reward').style.display = "none";
 }
 
@@ -790,7 +944,7 @@ let touchStartY = 0;
 let touchEndY = 0;
 
 // Order of your tabs for swiping
-const tabOrder = ['week', 'todos', 'chores', 'habits', 'rewards'];
+const tabOrder = ['calender', 'todos', 'chores', 'habits', 'rewards'];
 
 // Listen to the main content area so swiping on the navbar doesn't trigger it
 const contentArea = document.querySelector('.content');
