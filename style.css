@@ -28,8 +28,9 @@ body {
     background-color: var(--bg-dark);
     color: var(--text-main);
     display: flex;
-    height: 100vh;
+    height: 100dvh; 
     overflow: hidden;
+    overscroll-behavior-y: none; /* NEW: Stops the whole page from bouncing */
     -webkit-tap-highlight-color: transparent;
     -webkit-touch-callout: none;
     user-select: none; 
@@ -89,20 +90,14 @@ img {
     gap: 6px;
 }
 
-.nav-links li:hover, .nav-links li.active {
-    background-color: var(--bg-hover);
-    color: var(--accent);
-    transform: scale(1.1);
-}
-
 /* Main Content */
 .content {
     flex-grow: 1;
     display: flex;
     flex-direction: column;
     overflow-y: auto;
-    /* This ensures we can always scroll past the fixed/absolute elements */
     padding-bottom: 75px; 
+    overscroll-behavior-y: none; /* NEW: Stops the inner scrolling area from bouncing */
 }
 
 .top-bar {
@@ -110,14 +105,10 @@ img {
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
-
-    /* The Fix: Sticky instead of Fixed */
     position: sticky;
     top: 0;
-    z-index: 5; /* Ensures it stays on top of tasks as they scroll under */
-    background: var(--bg-dark); /* Using your CSS variable for #121212 */
-    
-    /* I added 1rem of bottom padding so tasks don't clip awkwardly into the text when scrolling */
+    z-index: 10;
+    background: var(--bg-dark); 
     padding: 1rem 1.25rem 1rem 1.25rem; 
 }
 
@@ -152,14 +143,15 @@ button {
 .btn-primary { 
     width: 38px; 
     height: 38px; 
-    padding: 0 0 2px 0;
+    padding: 3px 0 0 0;
     align-items: center; 
     justify-content: center;
     background-color: var(--accent); 
     color: #121212; 
     font-size: 18px; 
-    transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-.btn-primary:hover { transform: scale(0.8) rotate(360deg); }
+    transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+}
+
 .btn-cancel { 
     background-color: transparent; 
     color: var(--text-main); 
@@ -331,9 +323,7 @@ button {
 
 textarea {
     resize: vertical;
-}
-
-input, textarea {
+    min-height: 2.5rem;
     user-select: text;
 }
 
@@ -344,6 +334,27 @@ input, textarea {
     justify-content: center;
     margin: 0;
     align-items: center;
+}
+
+/* Theme Swatches */
+.theme-swatch {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 3px solid transparent; /* Hidden border for active state */
+    transition: transform 0.2s, border-color 0.2s;
+    /* Prevent shrinking on flexwrap */
+    flex-shrink: 0; 
+}
+
+.theme-swatch:hover {
+    transform: scale(1.15);
+}
+
+.theme-swatch.active {
+    border-color: var(--text-main); /* Highlights the selected color with a ring */
+    transform: scale(1.15);
 }
 
 .btn-backup {
@@ -404,6 +415,12 @@ input, select, textarea {
     animation: spinCheck 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
 
+.nav-links li.active {
+    background-color: var(--bg-hover);
+    color: var(--accent);
+    transform: scale(1.1);
+}
+
 .nav-icon {
     width: 24px;
     height: 24px;
@@ -433,7 +450,7 @@ input, select, textarea {
 #quote-desktop { display: none; }
 #quote-mobile { display: block; }
 
-/* Desktop Overrides */
+/* Desktop Width */
 @media (min-width: 650px) {
     /* Push it to the bottom of the flex navbar */
     #quote-desktop { 
@@ -442,9 +459,43 @@ input, select, textarea {
         padding-bottom: 2rem;
     }
     #quote-mobile { display: none; }
+    .btn-primary:hover { transform: scale(0.8) rotate(360deg); }
+    .app-container { flex-direction: row; } 
+    .content { padding: 1rem 3rem 1rem 3rem; }
+    .navbar { 
+        width: 200px; 
+        flex-direction: column; 
+        justify-content: flex-start;
+        align-items: flex-start;
+        height: 100vh;
+        border-top: none;
+        border-right: 1px solid #333;
+    }
+    .brand { 
+        display: flex;          /* Changed from block to flex */
+        align-items: center;    /* Vertically centers the icon with the text */
+        gap: 8px;
+        margin-bottom: 2rem;  
+    }
+    .nav-links { 
+        flex-direction: column; 
+        gap: 1rem; 
+        margin-bottom: 2rem; 
+        align-items: flex-start;
+        justify-content: left;
+    }
+    .nav-links li { 
+        flex-direction: row; /* Puts the icon and text side-by-side */
+        font-size:18px;
+    }
+    .nav-links li:hover {
+    background-color: var(--bg-hover);
+    color: var(--accent);
+    transform: scale(1.1);
+    }
 }
 
-/* when width is 767px or less */
+/* Mobile Width */
 @media (max-width: 650px) {
     .app-container { flex-direction: column-reverse; } 
     .navbar { 
@@ -475,37 +526,11 @@ input, select, textarea {
     .nav-links li { 
         width: 65px;
     }
+    .btn-primary:hover  { transform: scale(0.95);}
 }
 
 @media (min-width: 650px) {
-    .app-container { flex-direction: row; } 
-    .content { padding: 1rem 3rem 1rem 3rem; }
-    .navbar { 
-        width: 200px; 
-        flex-direction: column; 
-        justify-content: flex-start;
-        align-items: flex-start;
-        height: 100vh;
-        border-top: none;
-        border-right: 1px solid #333;
-    }
-    .brand { 
-        display: flex;          /* Changed from block to flex */
-        align-items: center;    /* Vertically centers the icon with the text */
-        gap: 8px;
-        margin-bottom: 2rem;  
-    }
-    .nav-links { 
-        flex-direction: column; 
-        gap: 1rem; 
-        margin-bottom: 2rem; 
-        align-items: flex-start;
-        justify-content: left;
-    }
-    .nav-links li { 
-        flex-direction: row; /* Puts the icon and text side-by-side */
-        font-size:18px;
-    }
+    
     
 }
 
