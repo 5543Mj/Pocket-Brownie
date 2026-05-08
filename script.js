@@ -62,19 +62,23 @@ function init() {
     } else {
         // PRESET TUTORIAL DATA
         state.tasks = [
-            { id: 1, title: "Welcome to Pocket Brownie! 🎉", type: "todos", 
-                difficulty: "trivial", folder: "Tutorial", notes: "Click the ✔ to complete this task!", 
+            { id: 1, title: "Welcome to Pocket Brownie! 🎉", type: "todos", difficulty: "trivial", 
+                folder: "Tutorial", notes: "Click the ✔ to complete this task!", createdDate: getTodayString() },
+            { id: 2, title: "Add task", type: "todos", difficulty: "trivial", 
+                folder: "Tutorial", notes: "Click the '+' icon located at the top right to add a task item.", 
                 createdDate: getTodayString() },
-            { id: 2, title: "Due dates", type: "todos", difficulty: "trivial", 
-                "dueDate": getTodayString(), folder: "Tutorial", notes: "Tasks due or overdue will be colored and indicated on the 'Calendar' tab.", 
+            { id: 2, title: "Edit task", type: "todos", difficulty: "trivial", 
+                folder: "Tutorial", notes: "Click on any task to edit it", 
                 createdDate: getTodayString() },
-            { id: 3, title: "Checklist", type: "chores", 
-                difficulty: "trivial", recurType: "monthly", recurInterval: 1, 
+            { id: 4, title: "Due dates", type: "todos", difficulty: "easy", "dueDate": "2000-01-01", 
+                folder: "Tutorial", notes: "Tasks due or overdue will be colored and indicated on the 'Calendar' tab.", 
+                createdDate: getTodayString() },
+            { id: 5, title: "Checklist", type: "chores", difficulty: "trivial", recurType: "monthly", recurInterval: 1, 
                 dueDate: getTodayString(), subtasks: [{id: 11, title: "Check one subtask to get partial points", completed: false}, 
                 {id: 12, title: "Check all subtasks or the main task to receive all points✨", completed: false}, 
                 {id: 13, title: "The due date will be pushed back by a set time once the 'Chore' is complete ⏰", completed: false}],
                 createdDate: getTodayString() },
-            { id: 4, title: "Drink Water", type: "habits", difficulty: "trivial", 
+            { id: 6, title: "Drink Water", type: "habits", difficulty: "trivial", 
                 folder: "Health", notes: "Habits don't have due dates, do them anytime, multiple times!", 
                 "habitReset": "daily", "habitCount": 0, createdDate: getTodayString() }
         ];
@@ -85,7 +89,19 @@ function init() {
         state.points = 0;
         saveData();
     }
+    // Auto-collapse all folders on load
+    state.tasks.forEach(task => {
+        if (task.folder) collapsedFolders.add(task.folder);
+    });
     
+    // Explicitly collapse the future calendar folders
+    collapsedFolders.add('dash-Tomorrow');
+    collapsedFolders.add('dash-Upcoming');
+    
+    // Ensure Overdue and Today stay open
+    collapsedFolders.delete('dash-Overdue');
+    collapsedFolders.delete('dash-Today');
+
     // Call our quotes!
     loadQuotes();
     
@@ -135,17 +151,29 @@ function toggleFolder(folderName) {
 }
 
 // Modal Logic
-function openModal() {
+function openModal(defaultFolder = '') { // Now accepts a folder name
     editingTaskId = null;
     currentSubtasks = []; // Reset subtasks
     document.getElementById('modal-title').innerText = "Add New Item";
     document.getElementById('task-title').value = '';
     document.getElementById('task-difficulty').value = 'medium'; // Default
     document.getElementById('task-date').value = '';
-    document.getElementById('task-folder').value = '';
+    
+    // NEW: Set the folder if passed
+    document.getElementById('task-folder').value = defaultFolder; 
+    
     document.getElementById('task-notes').value = '';
     document.getElementById('new-subtask-title').value = '';
     document.getElementById('task-habit-reset').value = 'daily'; 
+
+    // NEW: Auto-detect active tab and set category
+    const activeViewId = document.querySelector('.tab-view.active-view').id;
+    let currentTab = activeViewId.replace('view-', '');
+    
+    if (currentTab === 'calendar' || currentTab === 'rewards') {
+        currentTab = 'todos'; // Default to To-Do on tabs that aren't categories
+    }
+    document.getElementById('task-category').value = currentTab;
 
     renderModalSubtasks();
     document.getElementById('task-modal').style.display = 'flex';
@@ -289,6 +317,8 @@ function toggleTaskComplete(id) {
 }
 
 function deleteTask(id) {
+    if (!confirm("Are you sure you want to delete this item?")) return;
+    
     state.tasks = state.tasks.filter(t => t.id !== id);
     saveData();
     renderAll();
@@ -427,7 +457,7 @@ function getTaskHTML(task) {
             let checked = sub.completed ? 'checked' : '';
             let textClass = sub.completed ? 'style="text-decoration:line-through; opacity:0.6;"' : '';
             subtasksHTML += `
-                <label style="display:flex; align-items:center; gap:8px; margin-bottom: 6px; font-size:0.95rem; cursor:pointer;">
+                <label onclick="event.stopPropagation();" style="display:flex; align-items:center; gap:8px; margin-bottom: 6px; font-size:0.95rem; cursor:pointer;">
                     <input type="checkbox" ${checked} onchange="toggleSubtaskComplete(${task.id}, ${sub.id})" style="transform: scale(1.3); cursor:pointer;">
                     <span ${textClass}>${sub.title}</span>
                 </label>
@@ -437,8 +467,8 @@ function getTaskHTML(task) {
         ptsDisplay = `${ptsValue} pts total`; // Change formatting if divided
     }
 
-    let subtext = `${task.type === 'todos' ? task.folder : ''} ${task.dueDate ? '| ' + relDate : ''}`;
-    let completeBtnHTML = `<button class="btn-primary complete-btn-${task.id}" onclick="toggleTaskComplete(${task.id})">✔</button>`;    
+    let subtext = `${task.dueDate ? '| ' + relDate : ''}`;
+    let completeBtnHTML = `<button class="btn-primary complete-btn-${task.id}" onclick="event.stopPropagation(); toggleTaskComplete(${task.id})">✔</button>`;    
     if (task.type === 'chores') {
         if (task.recurType === 'weekly') subtext += ' (Weekly)';
         else if (task.recurType === 'monthly') subtext += ' (Monthly)';
@@ -448,24 +478,23 @@ function getTaskHTML(task) {
         let resetText = task.habitReset ? task.habitReset.charAt(0).toUpperCase() + task.habitReset.slice(1) : 'Daily';
         subtext = `Resets: ${resetText} | <strong style="color:var(--accent);">${count}</strong>`;
         completeBtnHTML = `
-            <button class="btn-cancel" onclick="undoHabit(${task.id})" style="width:36px; height:36px; padding:0; display:inline-flex; justify-content:center; align-items:center;" title="Undo">-</button>
-            <button class="btn-primary complete-btn-${task.id}" onclick="toggleTaskComplete(${task.id})">➕</button>
-        `;
-    }
+            <button class="btn-cancel" onclick="event.stopPropagation(); undoHabit(${task.id})" style="width:36px; height:36px; padding:0; display:inline-flex; justify-content:center; align-items:center;" title="Undo">-</button>
+            <button class="btn-primary complete-btn-${task.id}" onclick="event.stopPropagation(); toggleTaskComplete(${task.id})">➕</button>
+    `;
+}
 
     return `
-        <div class="task-item ${statusClass}">
+        <div class="task-item ${statusClass}" onclick="editTask(${task.id})">
             <div class="task-top-row">
                 <div class="task-info">
                     <h4 style="margin-bottom:4px;">${task.title} <span style="font-weight:normal; font-size:0.8rem; color:var(--accent);">(${ptsDisplay})</span></h4>
                     <small>${subtext}</small>
                     ${task.notes ? `<small><em>${task.notes}</em></small>` : ''}
                 </div>
-                
+            
                 <div class="task-actions" style="margin-left: 10px;">
                     ${completeBtnHTML}
-                    <button class="btn-edit" onclick="editTask(${task.id})">✎</button>
-                    <button class="btn-cancel" onclick="deleteTask(${task.id})">🗑</button>
+                    <button class="btn-cancel" onclick="event.stopPropagation(); deleteTask(${task.id})">🗑</button>
                 </div>
             </div>
             ${subtasksHTML}
@@ -606,7 +635,10 @@ function renderAll() {
         const isCollapsed = collapsedFolders.has(folderName);
         todosHTML += `
             <div class="folder-header" onclick="toggleFolder('${folderName}')">
-                <span>${folderName}</span>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <button class="btn-primary" onclick="event.stopPropagation(); openModal('${folderName}')" style="width: 28px; height: 28px; font-size: 16px; padding: 0; display: inline-flex; justify-content: center; align-items: center;" title="Add task to folder">+</button>
+                    <span>${folderName}</span>
+                </div>
                 <div class="folder-header-actions">
                     <button class="btn-random" onclick="startRandomizer('${folderName}', event)" title="Pick Random Task">🎲</button>
                     <span class="caret ${isCollapsed ? 'collapsed' : ''}">▼</span>
@@ -705,6 +737,8 @@ function cancelEditReward() {
 }
 
 function deleteReward(id) {
+    if (!confirm("Are you sure you want to delete this reward?")) return;
+    
     state.rewards = state.rewards.filter(r => r.id !== id);
     if(editingRewardId === id) cancelEditReward();
     saveData();
@@ -728,15 +762,14 @@ function renderRewards() {
     container.innerHTML = '';
     state.rewards.forEach(reward => {
         container.innerHTML += `
-            <div class="reward-item">
+            <div class="reward-item" onclick="editReward(${reward.id})">
                 <div class="task-info">
                     <h4>${reward.name}</h4>
                     <small>Cost: ${reward.cost} pts</small>
                 </div>
                 <div class="task-actions">
-                    <button class="btn-primary" onclick="buyReward(${reward.id})">Buy</button>
-                    <button class="btn-edit" onclick="editReward(${reward.id})">✎</button>
-                    <button class="btn-cancel" onclick="deleteReward(${reward.id})">🗑</button>
+                    <button class="btn-primary" onclick="event.stopPropagation(); buyReward(${reward.id})">Buy</button>
+                    <button class="btn-cancel" onclick="event.stopPropagation(); deleteReward(${reward.id})">🗑</button>
                 </div>
             </div>
         `;
