@@ -16,9 +16,9 @@
             <span class="nav-icon" style="-webkit-mask-image: url('img/pocket.svg'); mask-image: url('img/pocket.svg'); width: 50px; height: 50px;">
             </span>Pocket Brownie</h1>
             <ul class="nav-links">
-                <li class="active" onclick="switchTab('calender')">
-                    <span class="nav-icon" style="-webkit-mask-image: url('img/calender.svg'); mask-image: url('img/calender.svg');">
-                    </span>Calender</li>
+                <li class="active" onclick="switchTab('calendar')">
+                    <span class="nav-icon" style="-webkit-mask-image: url('img/calendar.svg'); mask-image: url('img/calendar.svg');">
+                    </span>calendar</li>
                 <li onclick="switchTab('todos')">
                     <span class="nav-icon" style="-webkit-mask-image: url('img/list-check.svg'); mask-image: url('img/list-check.svg');">
                     </span>To-Dos</li>
@@ -38,7 +38,7 @@
         <main class="content">
             <header class="top-bar">
                 <span class="head-icon"></span>
-                <h2 id="current-tab-title">Calender</h2>
+                <h2 id="current-tab-title">Calendar</h2>
                 <div class="header-actions">
                     <div class="points-display">
                         <span>Points: </span>
@@ -49,8 +49,8 @@
             </header>
 
             <!-- Views -->
-            <section id="view-calender" class="tab-view active-view">
-                <div id="list-calender" class="task-list"></div>
+            <section id="view-calendar" class="tab-view active-view">
+                <div id="list-calendar" class="task-list"></div>
             </section>
 
             <section id="view-todos" class="tab-view">
