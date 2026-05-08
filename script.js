@@ -54,11 +54,21 @@ function getTodayString() {
     return `${year}-${month}-${day}`;
 }
 
+const THEME_PRESETS = [
+    '#d4a373', // Your Original Default (Pocket Brownie)
+    '#e76f51', // Coral Red
+    '#2a9d8f', // Teal
+    '#e9c46a', // Yellow
+    '#8ab17d', // Sage Green
+    '#b5838d'  // Mauve/Purple
+];
+
 // Initialization
 function init() {
     const savedData = localStorage.getItem('pocketBrownie');
     if (savedData) {
         state = JSON.parse(savedData);
+        if (!state.themeColor) state.themeColor = THEME_PRESETS[0];
     } else {
         // PRESET TUTORIAL DATA
         state.tasks = [
@@ -87,8 +97,10 @@ function init() {
             { id: 102, name: "Treat", cost: 50 }
         ];
         state.points = 0;
+        state.themeColor = THEME_PRESETS[0];
         saveData();
     }
+    applyThemeColor(state.themeColor);
     // Auto-collapse all folders on load
     state.tasks.forEach(task => {
         if (task.folder) collapsedFolders.add(task.folder);
@@ -112,6 +124,49 @@ function init() {
 function saveData() {
     localStorage.setItem('pocketBrownie', JSON.stringify(state));
     updatePointsDisplay();
+}
+// --- THEME LOGIC ---
+
+function openThemeModal() {
+    renderThemeSwatches();
+    document.getElementById('theme-modal').style.display = 'flex';
+}
+
+function closeThemeModal(event) {
+    // If an event is passed, only close if the background (not the modal content) was clicked
+    if (event && event.target.id !== 'theme-modal') return;
+    document.getElementById('theme-modal').style.display = 'none';
+}
+
+function renderThemeSwatches() {
+    const container = document.getElementById('theme-swatches');
+    container.innerHTML = ''; // Clear previous swatches
+
+    THEME_PRESETS.forEach(color => {
+        const isActive = state.themeColor === color ? 'active' : '';
+        container.innerHTML += `
+            <div class="theme-swatch ${isActive}" 
+                 style="background-color: ${color};" 
+                 onclick="setThemeColor('${color}')">
+            </div>
+        `;
+    });
+}
+
+function setThemeColor(color) {
+    state.themeColor = color;
+    applyThemeColor(color);
+    saveData();
+    renderThemeSwatches(); // Re-render to update the "active" highlight ring
+}
+
+function applyThemeColor(color) {
+    // Dynamically overwrites the CSS root variable!
+    document.documentElement.style.setProperty('--accent', color);
+    
+    // Optional: Update the meta theme-color so the mobile browser's top bar matches
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    if (metaTheme) metaTheme.setAttribute('content', color);
 }
 
 // UI Navigation with Animation Support
@@ -478,7 +533,7 @@ function getTaskHTML(task) {
         let resetText = task.habitReset ? task.habitReset.charAt(0).toUpperCase() + task.habitReset.slice(1) : 'Daily';
         subtext = `Resets: ${resetText} | <strong style="color:var(--accent);">${count}</strong>`;
         completeBtnHTML = `
-            <button class="btn-cancel" onclick="event.stopPropagation(); undoHabit(${task.id})" style="width:36px; height:36px; padding:0; display:inline-flex; justify-content:center; align-items:center;" title="Undo">-</button>
+            <button class="btn-cancel" onclick="event.stopPropagation(); undoHabit(${task.id})" title="Undo">➖</button>
             <button class="btn-primary complete-btn-${task.id}" onclick="event.stopPropagation(); toggleTaskComplete(${task.id})">➕</button>
     `;
 }
@@ -489,14 +544,13 @@ function getTaskHTML(task) {
                 <div class="task-info">
                     <h4 style="margin-bottom:4px;">${task.title} <span style="font-weight:normal; font-size:0.8rem; color:var(--accent);">(${ptsDisplay})</span></h4>
                     <small>${subtext}</small>
-                    ${task.notes ? `<small><em>${task.notes}</em></small>` : ''}
                 </div>
-            
                 <div class="task-actions" style="margin-left: 10px;">
                     ${completeBtnHTML}
                     <button class="btn-cancel" onclick="event.stopPropagation(); deleteTask(${task.id})">🗑</button>
                 </div>
             </div>
+            ${task.notes ? `<small><em>${task.notes}</em></small>` : ''}
             ${subtasksHTML}
         </div>
     `;
@@ -977,7 +1031,7 @@ function triggerCelebration(taskId, callback) {
     }
 }
 
-// --- SWIPE NAVIGATION LOGIC ---
+// --- Mobile SWIPE NAVIGATION LOGIC ---
 let touchStartX = 0;
 let touchEndX = 0;
 let touchStartY = 0;
@@ -1028,6 +1082,16 @@ function handleSwipe() {
         }
     }
 }
+
+// --- MOBILE KEYBOARD FIX ---
+// Forces the viewport to snap back to normal when the keyboard closes
+document.addEventListener('focusout', function(e) {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+        setTimeout(() => {
+            window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+        }, 100);
+    }
+});
 
 // Start app
 window.onload = init;
