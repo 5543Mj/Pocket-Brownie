@@ -446,6 +446,9 @@ input[type="date"] {
     color:var(--accent);
     float: left;
     }
+    .nav-links li { 
+        width: 65px;
+    }
 }
 
 @media (min-width: 650px) {
