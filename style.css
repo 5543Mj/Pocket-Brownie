@@ -371,7 +371,20 @@ input[type="date"] {
     background-color: #3c3c3c;
     width: 50%;
     cursor: pointer;
-    color: var(--text-main);
+    color-scheme: dark;     
+    min-height: 38px;
+    padding: 0.4rem;
+    font-family: inherit;
+    font-size: 16px; 
+    border-radius: 4px;
+    border: 1px solid #333;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+    display: block;
+    opacity: 1;
+    filter: invert(1); /* Flips the default black icon to white */
+    cursor: pointer;
 }
 
 .spin-anim {
