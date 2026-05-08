@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Pocket Brownie</title>
     <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="manifest.json">
@@ -92,8 +92,8 @@
             <h3 id="modal-title">Add New Item</h3>
 
             <select id="task-category" onchange="toggleCategoryFields()">
-                <option value="todos">To-Do (One-time/Bonus)</option>
-                <option value="chores">Chore (Repeating)</option>
+                <option value="todos">To-Do (One time task, folders)</option>
+                <option value="chores">Chore (Repeating, optional due date)</option>
                 <option value="habits">Habit (Repeatable, no due date)</option>
             </select>
 
@@ -124,7 +124,7 @@
 
             <div id="date-group">
                 <label>Due Date:</label>
-                <input type="date" id="task-date">
+                <input type="date" id="task-date" placeholder="mm/dd/yy">
             </div>
 
             <!-- Chore Specific: Recurring Options -->
@@ -155,7 +155,7 @@
         </div>
     </div>
 
-    <!-- NEW: Randomizer Modal -->
+    <!-- Randomizer Modal -->
     <div id="random-modal" class="modal">
         <div class="modal-content" style="text-align: center; padding: 3rem;">
             <h3 id="random-folder-name" style="color: var(--text-muted); margin-bottom: 1rem;">Choosing from...</h3>
