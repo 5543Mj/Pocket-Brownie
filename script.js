@@ -438,19 +438,18 @@ function getTaskHTML(task) {
     }
 
     let subtext = `${task.type === 'todos' ? task.folder : ''} ${task.dueDate ? '| ' + relDate : ''}`;
-    let completeBtnHTML = `<button class="btn-primary" id="btn-complete-${task.id}" onclick="toggleTaskComplete(${task.id})">✔</button>`;
+    let completeBtnHTML = `<button class="btn-primary complete-btn-${task.id}" onclick="toggleTaskComplete(${task.id})">✔</button>`;    
     if (task.type === 'chores') {
         if (task.recurType === 'weekly') subtext += ' (Weekly)';
         else if (task.recurType === 'monthly') subtext += ' (Monthly)';
         else if (task.recurType === 'interval') subtext += ` (Every ${task.recurInterval} days)`;
     } else if (task.type === 'habits') {
-        // NEW: Habit specific text and buttons
         let count = task.habitCount || 0;
         let resetText = task.habitReset ? task.habitReset.charAt(0).toUpperCase() + task.habitReset.slice(1) : 'Daily';
         subtext = `Resets: ${resetText} | <strong style="color:var(--accent);">${count}</strong>`;
         completeBtnHTML = `
             <button class="btn-cancel" onclick="undoHabit(${task.id})" style="width:36px; height:36px; padding:0; display:inline-flex; justify-content:center; align-items:center;" title="Undo">-</button>
-            <button class="btn-primary" id="btn-complete-${task.id}" onclick="toggleTaskComplete(${task.id})">➕</button>
+            <button class="btn-primary complete-btn-${task.id}" onclick="toggleTaskComplete(${task.id})">➕</button>
         `;
     }
 
@@ -924,17 +923,21 @@ function fireConfetti(x, y) {
 function triggerCelebration(taskId, callback) {
     playDing();
     
-    const btn = document.getElementById(`btn-complete-${taskId}`);
-    if (btn) {
+    // Find all checkmark buttons for this specific task
+    const btns = document.querySelectorAll(`.complete-btn-${taskId}`);
+    
+    // Find the exact one that is currently visible on the screen
+    const visibleBtn = Array.from(btns).find(b => b.offsetParent !== null);
+    if (visibleBtn) {
         // Find the button's position on the screen
-        const rect = btn.getBoundingClientRect();
+        const rect = visibleBtn.getBoundingClientRect();
         const centerX = rect.left + (rect.width / 2);
         const centerY = rect.top + (rect.height / 2);
         
         // Fire confetti from that center point
         fireConfetti(centerX, centerY);
         
-        btn.classList.add('spin-anim');
+        visibleBtn.classList.add('spin-anim');
         setTimeout(callback, 400); 
     } else {
         callback();
