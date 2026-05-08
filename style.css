@@ -166,8 +166,6 @@ button {
     border: 1px solid var(--text-muted); 
     font-size: 18px;}
 .btn-cancel:hover  { transform: scale(0.95); background-color: var(--overdue)}
-.btn-edit { background-color: var(--edit); color: #fff; font-size: 20px; transition: transform 0.75s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-.btn-edit:hover  { transform: scale(0.95) rotateY(180deg);}
 
 /* Folders & Randomizer */
 .folder-header {
@@ -221,7 +219,7 @@ button {
     display: flex;
     flex-direction: column;
     gap: 10px;
-    padding: 1rem;
+    padding: 1rem 1rem 3rem 1rem;
 }
 
 .task-item {
@@ -385,6 +383,21 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     opacity: 1;
     filter: invert(1); /* Flips the default black icon to white */
     cursor: pointer;
+}
+
+/* Prevents iOS from auto-zooming on inputs */
+input, select, textarea {
+    font-size: 16px !important;
+}
+
+/* Makes tasks look clickable for the new Edit functionality */
+.task-item, .reward-item {
+    cursor: pointer;
+    transition: transform 0.1s ease;
+}
+
+.task-item:active, .reward-item:active {
+    transform: scale(0.98); /* Tiny shrink effect when tapped */
 }
 
 .spin-anim {
