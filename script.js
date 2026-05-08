@@ -65,13 +65,17 @@ function init() {
             { id: 1, title: "Welcome to Pocket Brownie! 🎉", type: "todos", 
                 difficulty: "trivial", folder: "Tutorial", notes: "Click the ✔ to complete this task!", 
                 createdDate: getTodayString() },
-            { id: 2, title: "Clean Bathroom", type: "chores", 
-                difficulty: "hard", recurType: "weekly", recurInterval: 1, 
-                dueDate: getTodayString(), subtasks: [{id: 11, title: "Clean Sink", 
-                completed: false}, {id: 12, title: "Clean Toilet", completed: false}], 
+            { id: 2, title: "Due dates", type: "todos", difficulty: "trivial", 
+                "dueDate": getTodayString(), folder: "Tutorial", notes: "Tasks due or overdue will be colored and indicated on the 'Calender' tab.", 
                 createdDate: getTodayString() },
-            { id: 3, title: "Drink Water", type: "habits", difficulty: "trivial", 
-                folder: "Health", notes: "Habits don't have due dates, do them anytime!", 
+            { id: 3, title: "Checklist", type: "chores", 
+                difficulty: "trivial", recurType: "monthly", recurInterval: 1, 
+                dueDate: getTodayString(), subtasks: [{id: 11, title: "Check one subtask to get partial points", completed: false}, 
+                {id: 12, title: "Check both subtasks or the main task to receive all points✨", completed: false}, 
+                {id: 13, title: "The due date will be pushed back by a set time once the 'Chore' is complete ⏰", completed: false}],
+                createdDate: getTodayString() },
+            { id: 4, title: "Drink Water", type: "habits", difficulty: "trivial", 
+                folder: "Health", notes: "Habits don't have due dates, do them anytime, multiple times!", 
                 "habitReset": "daily", "habitCount": 0, createdDate: getTodayString() }
         ];
         state.rewards = [
