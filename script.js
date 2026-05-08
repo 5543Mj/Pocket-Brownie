@@ -66,7 +66,7 @@ function init() {
                 difficulty: "trivial", folder: "Tutorial", notes: "Click the ✔ to complete this task!", 
                 createdDate: getTodayString() },
             { id: 2, title: "Due dates", type: "todos", difficulty: "trivial", 
-                "dueDate": getTodayString(), folder: "Tutorial", notes: "Tasks due or overdue will be colored and indicated on the 'Calender' tab.", 
+                "dueDate": getTodayString(), folder: "Tutorial", notes: "Tasks due or overdue will be colored and indicated on the 'Calendar' tab.", 
                 createdDate: getTodayString() },
             { id: 3, title: "Checklist", type: "chores", 
                 difficulty: "trivial", recurType: "monthly", recurInterval: 1, 
@@ -119,7 +119,7 @@ function switchTab(tabName, direction = 'fade') {
     activeView.classList.add('active-view', direction);
 
     // 4. Update Header Title
-    const titles = { calender: "Upcoming Tasks", todos: "To-Do List", chores: "Chores", habits: "Habits", rewards: "Rewards" };
+    const titles = { calendar: "Calendar", todos: "To-Do List", chores: "Chores", habits: "Habits", rewards: "Rewards" };
     document.getElementById('current-tab-title').innerText = titles[tabName];
     
     renderAll();
@@ -504,7 +504,7 @@ function renderAll() {
         return a.title.localeCompare(b.title);
     });
 
-    const lists = { calender: [], todos: [], chores: [], habits: [] };
+    const lists = { calendar: [], todos: [], chores: [], habits: [] };
 
     sortedTasks.forEach(task => {
         
@@ -514,7 +514,7 @@ function renderAll() {
         
         // Push everything that matches into the first tab
         if (isPendingTaskWithDate || isHabitZero) {
-            lists.calender.push(task); 
+            lists.calendar.push(task); 
         }
 
         // Standard Tab Logic
@@ -529,8 +529,8 @@ function renderAll() {
         container.innerHTML = lists[type].map(task => getTaskHTML(task)).join('');
     });
 
-    // NEW: Render Dashboard (Calender) with Collapsible Date Folders
-    const calenderContainer = document.getElementById('list-calender');
+    // NEW: Render Dashboard (Calendar) with Collapsible Date Folders
+    const calendarContainer = document.getElementById('list-calendar');
     const dateGroups = {
         "Overdue": [],
         "Today": [],
@@ -538,7 +538,7 @@ function renderAll() {
         "Upcoming": []
     };
 
-    lists.calender.forEach(task => {
+    lists.calendar.forEach(task => {
         // Zero-count habits go into Today so you see them immediately
         if (task.type === 'habits') {
             dateGroups["Today"].push(task); 
@@ -554,7 +554,7 @@ function renderAll() {
         }
     });
 
-    let calenderHTML = '';
+    let calendarHTML = '';
     const groupOrder = ["Overdue", "Today", "Tomorrow", "Upcoming"];
 
     groupOrder.forEach(groupName => {
@@ -568,7 +568,7 @@ function renderAll() {
             if (groupName === 'Overdue') titleColor = 'var(--overdue)';
             if (groupName === 'Today') titleColor = 'var(--due-today)';
 
-            calenderHTML += `
+            calendarHTML += `
                 <div class="folder-header" onclick="toggleFolder('${folderKey}')">
                     <span style="color: ${titleColor};">${groupName}</span>
                     <div class="folder-header-actions">
@@ -583,11 +583,11 @@ function renderAll() {
     });
 
     // Friendly empty state
-    if (calenderHTML === '') {
-        calenderHTML = `<p style="text-align:center; color:var(--text-muted); margin-top:2rem;">All caught up! 🎉</p>`;
+    if (calendarHTML === '') {
+        calendarHTML = `<p style="text-align:center; color:var(--text-muted); margin-top:2rem;">All caught up! 🎉</p>`;
     }
 
-    calenderContainer.innerHTML = calenderHTML;
+    calendarContainer.innerHTML = calendarHTML;
 
     // Render To-Dos (Grouped by Folder and Sorted Alphabetically)
     const todosContainer = document.getElementById('list-todos');
@@ -948,7 +948,7 @@ let touchStartY = 0;
 let touchEndY = 0;
 
 // Order of your tabs for swiping
-const tabOrder = ['calender', 'todos', 'chores', 'habits', 'rewards'];
+const tabOrder = ['calendar', 'todos', 'chores', 'habits', 'rewards'];
 
 // Listen to the main content area so swiping on the navbar doesn't trigger it
 const contentArea = document.querySelector('.content');
