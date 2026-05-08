@@ -44,7 +44,7 @@
                         <span>Points: </span>
                         <span id="brownie-points">0</span>
                     </div>
-                    <button class="btn-primary" onclick="openModal()">+</button>
+                    <button class="btn-primary" onclick="openModal()">➕</button>
                 </div>
             </header>
 
@@ -69,12 +69,13 @@
                 <div class="reward-section">
                     <input type="text" id="reward-name" placeholder="Reward Name" onkeydown="if(event.key === 'Enter') saveReward()">
                     <input type="number" style="max-width: 62px;" id="reward-cost" placeholder="Cost" onkeydown="if(event.key === 'Enter') saveReward()">
-                    <button class="btn-primary" id="btn-add-reward" onclick="saveReward()">+</button>
+                    <button class="btn-primary" id="btn-add-reward" onclick="saveReward()">➕</button>
                     <button class="btn-cancel" id="btn-cancel-reward" onclick="cancelEditReward()" style="display:none;">Cancel</button>
                 </div>
                 <div id="list-rewards" class="task-list" style="margin-top: 1rem;"></div>
                 <hr style="border: 1px solid #333; margin: 2rem 0;">
                 <div class="maintenance-actions">
+                    <button class="btn-backup" onclick="openThemeModal()" style="background-color: var(--accent); ">🎨 Theme</button>
                     <button class="btn-backup" onclick="exportData()">💾 Backup Data</button>
                     <label class="btn-restore">
                         📂 Restore Data
@@ -117,7 +118,7 @@
                 <label style="font-size: 0.85rem; color: var(--text-muted);">Divided Subtasks:</label>
                 <div style="display:flex; gap:5px; margin-top:5px;">
                     <input type="text" id="new-subtask-title" placeholder="Add a subtask..." onkeydown="if(event.key === 'Enter') addModalSubtask(event)">
-                    <button class="btn-primary" onclick="addModalSubtask(event)">+</button>
+                    <button class="btn-primary" onclick="addModalSubtask(event)">➕</button>
                 </div>
                 <ul id="modal-subtask-list" style="list-style:none; padding:0; margin-top:10px; display:flex; flex-direction:column; gap:5px;"></ul>
             </div>
@@ -166,6 +167,18 @@
             
             <div class="modal-actions" style="justify-content: center; margin-top: 2rem;">
                 <button class="btn-backup" id="btn-close-random" onclick="closeRandomModal()" style="display:none;">Let's Do It!</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Theme Modal -->
+    <div id="theme-modal" class="modal" onclick="closeThemeModal(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <h3 style="text-align: center; margin-bottom: 0.5rem;">Choose a Theme</h3>
+            <div id="theme-swatches" style="display: flex; gap: 15px; justify-content: center; margin: 1.5rem 0; flex-wrap: wrap;">
+            </div>
+            <div class="modal-actions" style="justify-content: center;">
+                <button class="btn-cancel" onclick="closeThemeModal()">Close</button>
             </div>
         </div>
     </div>
