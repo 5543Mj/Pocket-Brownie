@@ -71,7 +71,7 @@ function init() {
             { id: 3, title: "Checklist", type: "chores", 
                 difficulty: "trivial", recurType: "monthly", recurInterval: 1, 
                 dueDate: getTodayString(), subtasks: [{id: 11, title: "Check one subtask to get partial points", completed: false}, 
-                {id: 12, title: "Check both subtasks or the main task to receive all points✨", completed: false}, 
+                {id: 12, title: "Check all subtasks or the main task to receive all points✨", completed: false}, 
                 {id: 13, title: "The due date will be pushed back by a set time once the 'Chore' is complete ⏰", completed: false}],
                 createdDate: getTodayString() },
             { id: 4, title: "Drink Water", type: "habits", difficulty: "trivial", 
