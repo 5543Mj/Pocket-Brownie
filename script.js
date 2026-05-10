@@ -57,12 +57,15 @@ function getTodayString() {
 }
 
 const THEME_PRESETS = [
-    '#d4a373', // Your Original Default (Pocket Brownie)
-    '#e76f51', // Coral Red
-    '#2a9d8f', // Teal
-    '#e9c46a', // Yellow
-    '#8ab17d', // Sage Green
-    '#b5838d'  // Mauve/Purple
+    '#d4a373', // Default Sassy Sassafras
+    '#d27575', // Hearts Afire Red
+    '#e9c46a', // Golden Chalice
+    '#2a9d8f', // Azure Tide
+    '#73A4D4', // Iceberg
+    '#73d4a3', // Seafoam Green
+    '#8ab17d', // Asparagus
+    '#b5838d',  // Mauve/Purple
+    '#a373d4'  // Amethyst
 ];
 
 // Initialization
@@ -407,7 +410,6 @@ function checkDailyUpdates() {
                 if (hasSubtasks) {
                     let incompleteSubs = task.subtasks.filter(s => !s.completed);
                     if (incompleteSubs.length > 0) {
-                        // Added width: 100% and text-align: left to the main containers
                         subtasksHTML = `
                             <div class="subtasks-container" style="margin-top: 10px; border-top: 1px solid #333; padding-top: 10px; width: 100%; text-align: left;">
                                 <div class="subtask-toggle" onclick="toggleYesterdaySubtaskMenu(${task.id}, event)" style="display:flex; justify-content:space-between; align-items:center; cursor:pointer; color:var(--text-muted); font-size:0.85rem; margin-bottom: 5px;">
