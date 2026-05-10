@@ -8,8 +8,10 @@ let state = {
 let editingTaskId = null;
 let editingRewardId = null;
 let collapsedFolders = new Set();
+let openTaskDetails = new Set(); // Tracks which subtask menus are OPEN
 let shuffleInterval; // For the randomizer
 let currentSubtasks = []; // Holds subtasks temporarily while modal is open
+let draggedSubtaskIndex = null; // Tracks the subtask being dragged
 
 const DIFFICULTY_MAP = { trivial: 2, easy: 5, medium: 10, hard: 20, expert: 30 };
 
@@ -77,7 +79,7 @@ function init() {
             { id: 2, title: "Add task", type: "todos", difficulty: "trivial", 
                 folder: "Tutorial", notes: "Click the '+' icon located at the top right to add a task item.", 
                 createdDate: getTodayString() },
-            { id: 2, title: "Edit task", type: "todos", difficulty: "trivial", 
+            { id: 3, title: "Edit task", type: "todos", difficulty: "trivial", 
                 folder: "Tutorial", notes: "Click on any task to edit it", 
                 createdDate: getTodayString() },
             { id: 4, title: "Due dates", type: "todos", difficulty: "easy", "dueDate": "2000-01-01", 
@@ -247,9 +249,9 @@ function toggleCategoryFields() {
     document.getElementById('date-group').style.display = (type === 'habits') ? 'none' : 'block';
     document.getElementById('folder-group').style.display = (type === 'todos') ? 'block' : 'none';
     document.getElementById('chore-group').style.display = (type === 'chores') ? 'block' : 'none';
-    document.getElementById('task-recur-days').style.display = (recurType === 'interval') ? 'block' : 'none';
+    document.getElementById('custom-interval-group').style.display = (recurType === 'interval') ? 'flex' : 'none';
     document.getElementById('habit-group').style.display = (type === 'habits') ? 'block' : 'none';
-    document.getElementById('subtasks-group').style.display = (type === 'chores') ? 'block' : 'none';
+    document.getElementById('subtasks-group').style.display = (type === 'chores' || type === 'todos') ? 'block' : 'none';
 }
 
 // Task Management
@@ -267,8 +269,9 @@ function saveTask() {
         folder: document.getElementById('task-folder').value || 'Uncategorized',
         notes: document.getElementById('task-notes').value,
         recurType: document.getElementById('task-recur-type').value,
-        recurInterval: parseInt(document.getElementById('task-recur-days').value) || 1,
-        subtasks: taskType === 'chores' ? [...currentSubtasks] : [],
+        recurInterval: parseInt(document.getElementById('task-recur-num').value) || 1,   
+        recurUnit: document.getElementById('task-recur-unit').value || 'days', 
+        subtasks: (taskType === 'chores' || taskType === 'todos') ? [...currentSubtasks] : [],        
         habitReset: document.getElementById('task-habit-reset').value,
         habitCount: editingTaskId ? (state.tasks.find(t=>t.id===editingTaskId).habitCount || 0) : 0,
         lastResetDate: editingTaskId ? (state.tasks.find(t=>t.id===editingTaskId).lastResetDate || getTodayString()) : getTodayString()
@@ -303,7 +306,8 @@ function editTask(id) {
     document.getElementById('task-folder').value = task.folder || '';
     document.getElementById('task-notes').value = task.notes || '';
     document.getElementById('task-recur-type').value = task.recurType || 'weekly';
-    document.getElementById('task-recur-days').value = task.recurInterval || '';
+    document.getElementById('task-recur-num').value = task.recurInterval || '';
+    document.getElementById('task-recur-unit').value = task.recurUnit || 'days';
     document.getElementById('task-habit-reset').value = task.habitReset || 'daily';
     
     renderModalSubtasks();
@@ -382,14 +386,80 @@ function deleteTask(id) {
 function checkDailyUpdates() {
     let dataChanged = false;
     const today = getTodayString();
-    
+    const yesterday = getYesterdayString();
+
+    // NEW: Check if this is the first time opening the app today
+    if (state.lastLoginDate !== today) {
+        
+        // Find tasks exactly one day overdue that aren't finished
+        const missedTasks = state.tasks.filter(t => !t.completed && t.dueDate === yesterday);
+        
+        if (missedTasks.length > 0) {
+            const listContainer = document.getElementById('yesterday-task-list');
+            let yesterdayTasksHTML = '';
+            
+            missedTasks.forEach(task => {
+                let basePts = DIFFICULTY_MAP[task.difficulty] || 0;
+                let hasSubtasks = (task.type === 'chores' || task.type === 'todos') && task.subtasks && task.subtasks.length > 0;
+                let mainBtnHTML = `<button class="btn-primary complete-btn-${task.id}" onclick="completeYesterdayTask(${task.id})">✔</button>`;
+                
+                let subtasksHTML = '';
+                if (hasSubtasks) {
+                    let incompleteSubs = task.subtasks.filter(s => !s.completed);
+                    if (incompleteSubs.length > 0) {
+                        // Added width: 100% and text-align: left to the main containers
+                        subtasksHTML = `
+                            <div class="subtasks-container" style="margin-top: 10px; border-top: 1px solid #333; padding-top: 10px; width: 100%; text-align: left;">
+                                <div class="subtask-toggle" onclick="toggleYesterdaySubtaskMenu(${task.id}, event)" style="display:flex; justify-content:space-between; align-items:center; cursor:pointer; color:var(--text-muted); font-size:0.85rem; margin-bottom: 5px;">
+                                    <span>Incomplete Subtasks (${incompleteSubs.length})</span>
+                                    <span id="yesterday-caret-${task.id}" class="caret collapsed" style="transition: transform 0.2s;">▼</span>
+                                </div>
+                                <div id="yesterday-subtask-content-${task.id}" class="subtask-content" style="display: none; margin-top: 8px; width: 100%; text-align: left;">
+                        `;
+                        
+                        incompleteSubs.forEach(sub => {
+                            subtasksHTML += `
+                                <label onclick="event.stopPropagation();" style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 0.95rem; cursor: pointer;">
+                                    <input type="checkbox" onchange="completeYesterdaySubtask(${task.id}, ${sub.id}, this)" style="transform: scale(1.3); cursor: pointer; margin: 0;">
+                                    <span style="color: var(--text-main);">${sub.title}</span>
+                                </label>
+                            `;
+                        });
+                        subtasksHTML += `</div></div>`;
+                    }
+                }
+
+                yesterdayTasksHTML += `
+                    <div id="yesterday-item-${task.id}" class="task-item overdue" style="margin-bottom: 10px; display: flex; flex-direction: column; align-items: flex-start; width: 100%; text-align: left; box-sizing: border-box;">
+                        <div class="task-top-row" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                            <div class="task-info" style="text-align: left; flex-grow: 1;">
+                                <h4 style="margin-bottom:4px;">${task.title} <span style="font-weight:normal; font-size:0.8rem; color:var(--accent);">(+${basePts} pts)</span></h4>
+                                <small>${task.folder || 'Uncategorized'}</small>
+                            </div>
+                            <div class="task-actions" style="margin-left: 10px; flex-shrink: 0;">
+                                ${mainBtnHTML}
+                            </div>
+                        </div>
+                        ${subtasksHTML}
+                    </div>
+                `;
+            });
+            
+            listContainer.innerHTML = yesterdayTasksHTML;
+            document.getElementById('yesterday-modal').style.display = 'flex';
+        }
+        
+        // Save today as the new login date
+        state.lastLoginDate = today;
+        dataChanged = true;
+    }
+
+    // Existing Habit Reset Logic
     state.tasks.forEach(task => {
-        // Handle Habit Resets
         if (task.type === 'habits' && task.habitReset && task.habitReset !== 'never') {
             if (!task.lastResetDate) task.lastResetDate = task.createdDate || today;
 
             let shouldReset = false;
-            // Create proper Date objects for accurate math
             const lastDate = new Date(task.lastResetDate + 'T00:00:00');
             const currDate = new Date(today + 'T00:00:00');
 
@@ -411,11 +481,7 @@ function checkDailyUpdates() {
             }
         }
     });
-    state.tasks.forEach(task => {
-        if (!task.completed && task.dueDate && task.dueDate < today) {
-            // Future decay logic
-        }
-    });
+
     if (dataChanged) saveData();
 }
 
@@ -459,10 +525,12 @@ function handleChoreRecurrence(task) {
         let parts = task.dueDate.split('-');
         let currentDue = new Date(parts[0], parts[1] - 1, parts[2]);
         
-        if (task.recurType === 'weekly') currentDue.setDate(currentDue.getDate() + 7);
+        if (task.recurType === 'weekly') currentDue.setDate(currentDue.getDate() + 7);        
         else if (task.recurType === 'monthly') currentDue.setMonth(currentDue.getMonth() + 1);
-        else if (task.recurType === 'interval') currentDue.setDate(currentDue.getDate() + task.recurInterval);
-
+        else if (task.recurType === 'interval') {
+            const daysToAdd = task.recurUnit === 'weeks' ? task.recurInterval * 7 : task.recurInterval;
+            currentDue.setDate(currentDue.getDate() + daysToAdd);
+        }
         const yyyy = currentDue.getFullYear();
         const mm = String(currentDue.getMonth() + 1).padStart(2, '0');
         const dd = String(currentDue.getDate()).padStart(2, '0');
@@ -489,6 +557,17 @@ function undoHabit(id) {
     }
 }
 
+function toggleSubtaskMenu(taskId, event) {
+    if (event) event.stopPropagation(); // Prevents opening the edit menu
+    
+    if (openTaskDetails.has(taskId)) {
+        openTaskDetails.delete(taskId); // Close it
+    } else {
+        openTaskDetails.add(taskId); // Open it
+    }
+    renderAll();
+}
+
 function getTaskHTML(task) {
     let statusClass = task.completed ? 'completed' : '';
     let relDate = getRelativeDateString(task.dueDate);
@@ -504,10 +583,22 @@ function getTaskHTML(task) {
     let ptsDisplay = `+${ptsValue}`;
     if (isOverdue) ptsDisplay += ` (Half pts)`;
 
-    // Subtasks HTML
+    // Subtasks HTML (Collapsible and supports To-Dos!)
     let subtasksHTML = '';
-    if (task.type === 'chores' && task.subtasks && task.subtasks.length > 0) {
-        subtasksHTML = '<div class="subtasks-container" style="margin-top: 10px; border-top: 1px solid #333; padding-top: 10px;">';
+    if ((task.type === 'chores' || task.type === 'todos') && task.subtasks && task.subtasks.length > 0) {
+        const isMenuOpen = openTaskDetails.has(task.id);
+        const completedSubs = task.subtasks.filter(s => s.completed).length;
+
+        // Subtasks HTML text
+        subtasksHTML = `
+            <div class="subtasks-container" style="margin-top: 10px; border-top: 1px solid #333; padding-top: 10px;">
+                <div class="subtask-toggle" onclick="toggleSubtaskMenu(${task.id}, event)" style="display:flex; justify-content:space-between; align-items:center; cursor:pointer; color:var(--text-muted); font-size:0.85rem; margin-bottom: 5px;">
+                    <span>(${completedSubs}/${task.subtasks.length})</span>
+                    <span class="caret ${!isMenuOpen ? 'collapsed' : ''}" style="transition: transform 0.2s;">▼</span>
+                </div>
+                <div class="subtask-content" style="display: ${isMenuOpen ? 'block' : 'none'}; margin-top: 8px;">
+        `;
+        
         task.subtasks.forEach(sub => {
             let checked = sub.completed ? 'checked' : '';
             let textClass = sub.completed ? 'style="text-decoration:line-through; opacity:0.6;"' : '';
@@ -518,8 +609,9 @@ function getTaskHTML(task) {
                 </label>
             `;
         });
-        subtasksHTML += '</div>';
-        ptsDisplay = `${ptsValue} pts total`; // Change formatting if divided
+        
+        subtasksHTML += `</div></div>`;
+        ptsDisplay = `${ptsValue} pts total`; // Update formatting for divided points
     }
 
     let subtext = `${task.dueDate ? '| ' + relDate : ''}`;
@@ -527,14 +619,14 @@ function getTaskHTML(task) {
     if (task.type === 'chores') {
         if (task.recurType === 'weekly') subtext += ' (Weekly)';
         else if (task.recurType === 'monthly') subtext += ' (Monthly)';
-        else if (task.recurType === 'interval') subtext += ` (Every ${task.recurInterval} days)`;
+        else if (task.recurType === 'interval') subtext += ` (Every ${task.recurInterval} ${task.recurUnit})`;
     } else if (task.type === 'habits') {
         let count = task.habitCount || 0;
         let resetText = task.habitReset ? task.habitReset.charAt(0).toUpperCase() + task.habitReset.slice(1) : 'Daily';
         subtext = `Resets: ${resetText} | <strong style="color:var(--accent);">${count}</strong>`;
         completeBtnHTML = `
-            <button class="btn-cancel" onclick="event.stopPropagation(); undoHabit(${task.id})" title="Undo">➖</button>
-            <button class="btn-primary complete-btn-${task.id}" onclick="event.stopPropagation(); toggleTaskComplete(${task.id})">➕</button>
+            <button class="btn-cancel" style="padding: 3px 0 0 0;" onclick="event.stopPropagation(); undoHabit(${task.id})" title="Undo">➖</button>
+            <button class="btn-primary complete-btn-${task.id}" style="padding: 3px 0 0 0;" onclick="event.stopPropagation(); toggleTaskComplete(${task.id})">➕</button>
     `;
 }
 
@@ -563,7 +655,10 @@ function renderAll() {
     
     // Sort logic: Date -> Points (Descending) -> Alphabetical
     const sortedTasks = [...state.tasks].sort((a, b) => {
-        // 1. Sort by Due Date first
+        // 1. Completion Status (Completed drops to the bottom)
+        if (a.completed !== b.completed) return a.completed ? 1 : -1;
+
+        // 2. Due Date (Earliest/Overdue at the top)
         if (a.dueDate && b.dueDate) {
             const dateA = new Date(a.dueDate);
             const dateB = new Date(b.dueDate);
@@ -575,14 +670,23 @@ function renderAll() {
             return 1;  // 'b' has a date, push it up
         }
         
-        // 2. If dates match (or neither has a date), sort by Points (highest first)
+        // 3. Habit Count (Lowest count at the top)
+        if (a.type === 'habits' && b.type === 'habits') {
+            const countA = a.habitCount || 0;
+            const countB = b.habitCount || 0;
+            if (countA !== countB) return countA - countB;
+        } else if (a.type === 'habits') {
+            return -1; // Push habits up if competing with non-dated tasks
+        } else if (b.type === 'habits') {
+            return 1;
+        }
+
+        // 4. Difficulty / Points (Highest at the top)
         const ptsA = calculateTaskPoints(a);
         const ptsB = calculateTaskPoints(b);
-        if (ptsB !== ptsA) {
-            return ptsB - ptsA; 
-        }
+        if (ptsB !== ptsA) return ptsB - ptsA; 
         
-        // 3. Fallback to alphabetical if everything else is tied
+        // 5. Title (Alphabetical A-Z)
         return a.title.localeCompare(b.title);
     });
 
@@ -811,6 +915,108 @@ function buyReward(id) {
     }
 }
 
+// --- YESTERDAY'S GRACE PERIOD LOGIC ---
+
+function getYesterdayString() {
+    const d = new Date();
+    d.setDate(d.getDate() - 1); // Roll the clock back exactly 24 hours
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+function completeYesterdayTask(id) {
+    const task = state.tasks.find(t => t.id === id);
+    if (!task) return;
+
+    // Calculate points based purely on difficulty (bypassing the overdue halving)
+    let basePts = DIFFICULTY_MAP[task.difficulty] || 0;
+
+    state.points += basePts;
+    task.completed = true;
+
+    // Automatically check off subtasks if it's a divided chore
+    if (task.subtasks) {
+        task.subtasks.forEach(s => s.completed = true);
+    }
+
+    if (navigator.vibrate) navigator.vibrate(50);
+    
+    // Visually gray out the item so the user knows they tapped it
+    const itemElement = document.getElementById(`yesterday-item-${id}`);
+    if (itemElement) {
+        itemElement.style.opacity = '0.5';
+        itemElement.style.pointerEvents = 'none'; 
+    }
+    
+    triggerCelebration(id, () => {
+        handleChoreRecurrence(task);
+        saveData();
+        renderAll();
+    });
+}
+
+function toggleYesterdaySubtaskMenu(taskId, event) {
+    if (event) event.stopPropagation();
+    
+    const content = document.getElementById(`yesterday-subtask-content-${taskId}`);
+    const caret = document.getElementById(`yesterday-caret-${taskId}`);
+    
+    if (content.style.display === 'none') {
+        content.style.display = 'block';
+        caret.classList.remove('collapsed');
+    } else {
+        content.style.display = 'none';
+        caret.classList.add('collapsed');
+    }
+}
+
+function completeYesterdaySubtask(taskId, subtaskId, checkboxEl) {
+    const task = state.tasks.find(t => t.id === taskId);
+    const subtask = task.subtasks.find(s => s.id === subtaskId);
+    if (!task || !subtask || subtask.completed) return;
+
+    let basePts = DIFFICULTY_MAP[task.difficulty] || 0;
+    let subPts = basePts / task.subtasks.length;
+
+    subtask.completed = true;
+    state.points += subPts;
+    if (navigator.vibrate) navigator.vibrate(20);
+
+    // Visually cross it off instantly
+    checkboxEl.disabled = true;
+    checkboxEl.nextElementSibling.style.textDecoration = 'line-through';
+    checkboxEl.nextElementSibling.style.opacity = '0.6';
+
+    // Check if that was the last subtask
+    let allDone = task.subtasks.every(s => s.completed);
+    if (allDone) {
+        task.completed = true;
+        if (navigator.vibrate) navigator.vibrate(50);
+        playDing();
+        
+        const itemElement = document.getElementById(`yesterday-item-${taskId}`);
+        if (itemElement) {
+            itemElement.style.opacity = '0.5';
+            itemElement.style.pointerEvents = 'none'; 
+            
+            // Fire confetti directly from the center of the task card
+            const rect = itemElement.getBoundingClientRect();
+            fireConfetti(rect.left + (rect.width / 2), rect.top + (rect.height / 2));
+        }
+        
+        handleChoreRecurrence(task);
+    }
+    
+    saveData();
+    updatePointsDisplay(); 
+}
+
+function closeYesterdayModal() {
+    document.getElementById('yesterday-modal').style.display = 'none';
+}
+
 function renderRewards() {
     const container = document.getElementById('list-rewards');
     container.innerHTML = '';
@@ -842,7 +1048,7 @@ function exportData() {
     const link = document.createElement('a');
     
     // 3. Name the file with today's date
-    const date = new Date().toISOString().split('T')[0];
+    const date = getTodayString();
     link.download = `brownie-backup-${date}.json`;
     link.href = url;
     
@@ -881,8 +1087,6 @@ function importData(event) {
 }
 
 function calculateTaskPoints(task) {
-    // Fallback for old tasks that used manual numbers before the update
-    if (!task.difficulty && task.points) return task.points; 
     
     let base = DIFFICULTY_MAP[task.difficulty] || 0;
     
@@ -912,12 +1116,49 @@ function renderModalSubtasks() {
     list.innerHTML = '';
     currentSubtasks.forEach((sub, index) => {
         list.innerHTML += `
-            <li style="display:flex; justify-content:space-between; align-items:center; background:var(--bg-panel); padding:6px; border-radius:4px;">
-                <span style="font-size:0.9rem;">${sub.title}</span>
+            <li class="subtask-item" draggable="true" 
+                ondragstart="dragStartSubtask(event, ${index})" 
+                ondragover="dragOverSubtask(event)" 
+                ondragleave="dragLeaveSubtask(event)"
+                ondrop="dropSubtask(event, ${index})"
+                style="display:flex; justify-content:space-between; align-items:center; background:var(--bg-panel); padding:6px; border-radius:4px;">
+                <div style="display:flex; align-items:center; gap: 10px;">
+                    <span style="color:var(--text-muted); cursor:grab;">☰</span>
+                    <span style="font-size:0.9rem;">${sub.title}</span>
+                </div>
                 <button class="btn-cancel" style="padding:2px 6px; font-size:0.8rem;" onclick="removeModalSubtask(event, ${index})">✕</button>
             </li>
         `;
     });
+}
+
+// --- DRAG AND DROP LOGIC ---
+function dragStartSubtask(event, index) {
+    draggedSubtaskIndex = index;
+    event.dataTransfer.effectAllowed = "move";
+}
+
+function dragOverSubtask(event) {
+    event.preventDefault(); // Necessary to allow dropping
+    event.currentTarget.classList.add('drag-over');
+}
+
+function dragLeaveSubtask(event) {
+    event.currentTarget.classList.remove('drag-over');
+}
+
+function dropSubtask(event, dropIndex) {
+    event.preventDefault();
+    event.currentTarget.classList.remove('drag-over');
+    
+    if (draggedSubtaskIndex === null || draggedSubtaskIndex === dropIndex) return;
+    
+    // Remove the item from the old position and insert at the new position
+    const item = currentSubtasks.splice(draggedSubtaskIndex, 1)[0];
+    currentSubtasks.splice(dropIndex, 0, item);
+    
+    draggedSubtaskIndex = null;
+    renderModalSubtasks();
 }
 
 function addModalSubtask(event) {
