@@ -44,7 +44,7 @@
                         <span>Points: </span>
                         <span id="brownie-points">0</span>
                     </div>
-                    <button class="btn-primary" onclick="openModal()">➕</button>
+                    <button class="btn-primary" style="padding: 3px 0 0 0;" onclick="openModal()">➕</button>
                 </div>
             </header>
 
@@ -67,9 +67,9 @@
 
             <section id="view-rewards" class="tab-view">
                 <div class="reward-section">
-                    <input type="text" id="reward-name" placeholder="Reward Name" onkeydown="if(event.key === 'Enter') saveReward()">
-                    <input type="number" style="max-width: 62px;" id="reward-cost" placeholder="Cost" onkeydown="if(event.key === 'Enter') saveReward()">
-                    <button class="btn-primary" id="btn-add-reward" onclick="saveReward()">➕</button>
+                    <input type="text" id="reward-name" placeholder="Reward" onkeydown="if(event.key === 'Enter') saveReward()">
+                    <input type="number" style="max-width: 66px;" id="reward-cost" placeholder="Cost" onkeydown="if(event.key === 'Enter') saveReward()">
+                    <button class="btn-primary" style="padding: 3px 0 0 0" id="btn-add-reward" onclick="saveReward()">➕</button>
                     <button class="btn-cancel" id="btn-cancel-reward" onclick="cancelEditReward()" style="display:none;">Cancel</button>
                 </div>
                 <div id="list-rewards" class="task-list" style="margin-top: 1rem;"></div>
@@ -98,10 +98,10 @@
                 <option value="habits">Habit (Repeatable, no due date)</option>
             </select>
 
-            <input type="text" id="task-title" placeholder="Task Title" onkeydown="if(event.key === 'Enter') saveTask()" required>
+            <input type="text" id="task-title" placeholder="Task Item" onkeydown="if(event.key === 'Enter') saveTask()" required>
 
             <div id="folder-group">
-                <input type="text" id="task-folder" placeholder="Folder/Header (e.g., Work, Home)">
+                <input type="text" id="task-folder" placeholder="Folder">
             </div>
             
             <!-- Difficulty Dropdown -->
@@ -115,17 +115,17 @@
 
             <!-- Subtasks Manager (Only shows for Chores) -->
             <div id="subtasks-group" style="display:none; background: var(--bg-dark); padding: 10px; border-radius: 6px; border: 1px solid #333;">
-                <label style="font-size: 0.85rem; color: var(--text-muted);">Divided Subtasks:</label>
+                <label style="font-size: 0.85rem; color: var(--text-muted);">Subtasks:</label>
                 <div style="display:flex; gap:5px; margin-top:5px;">
-                    <input type="text" id="new-subtask-title" placeholder="Add a subtask..." onkeydown="if(event.key === 'Enter') addModalSubtask(event)">
-                    <button class="btn-primary" onclick="addModalSubtask(event)">➕</button>
+                    <input type="text" id="new-subtask-title" placeholder="Add a subtask" onkeydown="if(event.key === 'Enter') addModalSubtask(event)">
+                    <button class="btn-primary" style="padding: 5px 0 0 0;" onclick="addModalSubtask(event)">➕</button>
                 </div>
                 <ul id="modal-subtask-list" style="list-style:none; padding:0; margin-top:10px; display:flex; flex-direction:column; gap:5px;"></ul>
             </div>
 
             <div id="date-group">
                 <label>Due Date:</label>
-                <input type="date" id="task-date" placeholder="mm/dd/yy">
+                <input type="date" id="task-date">
             </div>
 
             <!-- Chore Specific: Recurring Options -->
@@ -134,9 +134,15 @@
                 <select id="task-recur-type" onchange="toggleCategoryFields()">
                     <option value="weekly">Weekly</option>
                     <option value="monthly">Monthly</option>
-                    <option value="interval">Custom Interval (Days)</option>
+                    <option value="interval">Custom Interval</option>
                 </select>
-                <input type="number" id="task-recur-days" placeholder="Every X days" style="display:none; margin-top: 0.5rem;">
+                <div id="custom-interval-group" style="display:none; margin-top: 0.5rem; gap: 5px;">
+                    <input type="number" id="task-recur-num" placeholder="Every X" style="width: 50%;">
+                    <select id="task-recur-unit" style="width: 50%;">
+                        <option value="days">Days</option>
+                        <option value="weeks">Weeks</option>
+                    </select>
+                </div>
             </div>
             <div id="habit-group" style="display:none;">
                 <label>Counter Resets:</label>
@@ -149,7 +155,7 @@
             </div>
             <textarea id="task-notes" placeholder="Notes..."></textarea>
             
-            <div class="modal-actions">
+            <div class="maintenance-actions" style="gap: 6rem;">
                 <button class="btn-cancel" onclick="closeModal()">Cancel</button>
                 <button class="btn-primary" onclick="saveTask()">✔</button>
             </div>
@@ -165,7 +171,7 @@
                 🎲 Shuffling...
             </div>
             
-            <div class="modal-actions" style="justify-content: center; margin-top: 2rem;">
+            <div class="maintenance-actions" style="justify-content: center; margin-top: 2rem;">
                 <button class="btn-backup" id="btn-close-random" onclick="closeRandomModal()" style="display:none;">Let's Do It!</button>
             </div>
         </div>
@@ -177,12 +183,23 @@
             <h3 style="text-align: center; margin-bottom: 0.5rem;">Choose a Theme</h3>
             <div id="theme-swatches" style="display: flex; gap: 15px; justify-content: center; margin: 1.5rem 0; flex-wrap: wrap;">
             </div>
-            <div class="modal-actions" style="justify-content: center;">
+            <div class="maintenance-actions">
                 <button class="btn-cancel" onclick="closeThemeModal()">Close</button>
             </div>
         </div>
     </div>
-
+    <div id="yesterday-modal" class="modal">
+            <div class="modal-content" style="max-height: 80vh; overflow-y: auto;">
+                <h3 style="text-align: center; color: var(--accent); margin-bottom: 0.5rem;">Wait! Did you do these?</h3>
+                <p style="text-align: center; color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">These were due yesterday. If you finished them but forgot to tap the checkmark, claim your full points now!</p>
+            
+                <div id="yesterday-task-list" class="task-list" style="padding: 0; margin-bottom: 1rem;"></div>
+            
+                <div class="modal-actions" style="justify-content: center;">
+                    <button class="btn-cancel" onclick="closeYesterdayModal()" style="width: auto; padding: 0.5rem 2rem;">I'm Done</button>
+                </div>
+            </div>
+        </div>
     <script src="script.js"></script>
 </body>
 </html>
