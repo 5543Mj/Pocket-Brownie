@@ -34,16 +34,9 @@ body {
     -webkit-tap-highlight-color: transparent;
     -webkit-touch-callout: none;
     user-select: none; 
-    padding-top: env(safe-area-inset-top);
-    padding-bottom: env(safe-area-inset-bottom);
     padding-left: env(safe-area-inset-left);
     padding-right: env(safe-area-inset-right);
     -webkit-text-size-adjust: 100%; 
-}
-
-img {
-    display: flex;
-    justify-content: space-around;
 }
 
 .app-container {
@@ -106,7 +99,8 @@ img {
     align-items: center;
     flex-wrap: wrap;
     position: sticky;
-    top: 0;
+    top: -1px; /* Changed from 0 to prevent the scroll gap */
+    margin-top: 0; /* Ensures nothing pushes it down */
     z-index: 10;
     background: var(--bg-dark); 
     padding: 1rem 1.25rem 1rem 1.25rem; 
@@ -115,7 +109,7 @@ img {
 .header-actions {
     display: flex;
     align-items: center;
-    gap: 15px;
+    gap: 5px;
 }
 
 .points-display {
@@ -123,7 +117,7 @@ img {
     font-weight: bold;
     color: var(--accent);
     background: var(--bg-panel);
-    padding: 0.5rem 1rem;
+    padding: 0.5rem 0.5rem;
     border-radius: 8px;
     border: 1px solid #333;
 }
@@ -143,20 +137,21 @@ button {
 .btn-primary { 
     width: 38px; 
     height: 38px; 
-    padding: 3px 0 0 0;
     align-items: center; 
     justify-content: center;
     background-color: var(--accent); 
     color: #121212; 
     font-size: 18px; 
     transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+    padding: 3px 0 0 1px;
 }
 
 .btn-cancel { 
     background-color: transparent; 
     color: var(--text-main); 
     border: 1px solid var(--text-muted); 
-    font-size: 18px;}
+    font-size: 18px;
+}
 .btn-cancel:hover  { transform: scale(0.95); background-color: var(--overdue)}
 
 /* Folders & Randomizer */
@@ -266,6 +261,7 @@ button {
     background: var(--bg-panel);
     padding: .5rem;
     border-radius: 8px;
+    margin: 1rem;
 }
 
 .reward-section input {
@@ -321,6 +317,11 @@ button {
     border-radius: 4px;
 }
 
+.modal-content input[type="checkbox"] {
+    width: auto;
+    border: none; /* Optional: removes the border square if your browser is forcing one */
+}
+
 textarea {
     resize: vertical;
     min-height: 2.5rem;
@@ -344,7 +345,6 @@ textarea {
     cursor: pointer;
     border: 3px solid transparent; /* Hidden border for active state */
     transition: transform 0.2s, border-color 0.2s;
-    /* Prevent shrinking on flexwrap */
     flex-shrink: 0; 
 }
 
@@ -415,6 +415,17 @@ input, select, textarea {
     animation: spinCheck 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
 
+.subtask-item {
+    cursor: grab;
+    transition: background-color 0.2s;
+}
+.subtask-item:active {
+    cursor: grabbing;
+}
+.subtask-item.drag-over {
+    border-top: 2px solid var(--accent); /* Visual indicator for where it will drop */
+}
+
 .nav-links li.active {
     background-color: var(--bg-hover);
     color: var(--accent);
@@ -467,7 +478,7 @@ input, select, textarea {
         flex-direction: column; 
         justify-content: flex-start;
         align-items: flex-start;
-        height: 100vh;
+        height: 100dvh;
         border-top: none;
         border-right: 1px solid #333;
     }
@@ -511,12 +522,7 @@ input, select, textarea {
     white-space: nowrap; 
     }
     .head-icon {
-    width: 24px;
-    height: 24px;
     background-color: currentColor; 
-    -webkit-mask-size: contain;
-    -webkit-mask-repeat: no-repeat;
-    -webkit-mask-position: center;
     mask-image: url('img/pocket.svg'); 
     width: 50px; 
     height: 50px; 
@@ -529,9 +535,11 @@ input, select, textarea {
     .btn-primary:hover  { transform: scale(0.95);}
 }
 
-@media (min-width: 650px) {
-    
-    
+@media (display-mode: standalone) {
+    body {
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: env(safe-area-inset-bottom);
+    }
 }
 
 /* Celebration Spin */
