@@ -15,14 +15,14 @@ let draggedSubtaskIndex = null; // Tracks the subtask being dragged
 
 const THEME_PRESETS = [
     '#d4a373', // Default Sassy Sassafras
-    '#d27575', // Hearts Afire Red
     '#e9c46a', // Golden Chalice
     '#2a9d8f', // Azure Tide
     '#73A4D4', // Iceberg
     '#73d4a3', // Seafoam Green
     '#8ab17d', // Asparagus
+    '#a373d4',  // Amethyst
     '#b5838d',  // Mauve/Purple
-    '#a373d4'  // Amethyst
+    '#d27575' // Hearts Afire Red
 ];
 
 const DIFFICULTY_MAP = { trivial: 2, easy: 5, medium: 10, hard: 20, expert: 30 };
@@ -527,12 +527,17 @@ function handleChoreRecurrence(task) {
         let parts = task.dueDate.split('-');
         let currentDue = new Date(parts[0], parts[1] - 1, parts[2]);
         
-        if (task.recurType === 'weekly') currentDue.setDate(currentDue.getDate() + 7);        
-        else if (task.recurType === 'monthly') currentDue.setMonth(currentDue.getMonth() + 1);
-        else if (task.recurType === 'interval') {
-            const daysToAdd = task.recurUnit === 'weeks' ? task.recurInterval * 7 : task.recurInterval;
-            currentDue.setDate(currentDue.getDate() + daysToAdd);
-        }
+        const todayParts = getTodayString().split('-');
+        const todayDate = new Date(todayParts[0], todayParts[1] - 1, todayParts[2]);
+        // Advance until the next due date is strictly in the future
+        do {
+            if (task.recurType === 'weekly') currentDue.setDate(currentDue.getDate() + 7);
+            else if (task.recurType === 'monthly') currentDue.setMonth(currentDue.getMonth() + 1);
+            else if (task.recurType === 'interval') {
+                const daysToAdd = task.recurUnit === 'weeks' ? task.recurInterval * 7 : task.recurInterval;
+                currentDue.setDate(currentDue.getDate() + daysToAdd);
+            } else { break; }
+        } while (currentDue <= todayDate);
         const yyyy = currentDue.getFullYear();
         const mm = String(currentDue.getMonth() + 1).padStart(2, '0');
         const dd = String(currentDue.getDate()).padStart(2, '0');
@@ -1021,11 +1026,14 @@ function closeYesterdayModal() {
 
 function renderRewards() {
     const container = document.getElementById('list-rewards');
+    // Reset flag so setupDragList re-attaches listeners on fresh HTML
+    container._dragSetup = false;
     container.innerHTML = '';
-    state.rewards.forEach(reward => {
+    state.rewards.forEach((reward, index) => {
         container.innerHTML += `
-            <div class="reward-item" onclick="editReward(${reward.id})">
-                <div class="task-info">
+            <div class="reward-item" data-drag-item data-drag-index="${index}" onclick="editReward(${reward.id})">
+                <span data-drag-handle onclick="event.stopPropagation()" style="color:var(--text-muted); font-size:1.1rem; padding: 0 6px 0 2px; flex-shrink:0;">☰</span>
+                <div class="task-info" style="flex-grow:1;">
                     <h4>${reward.name}</h4>
                     <small>Cost: ${reward.cost} pts</small>
                 </div>
@@ -1035,6 +1043,12 @@ function renderRewards() {
                 </div>
             </div>
         `;
+    });
+    setupDragList('list-rewards', (from, to) => {
+        const item = state.rewards.splice(from, 1)[0];
+        state.rewards.splice(to, 0, item);
+        saveData();
+        renderRewards();
     });
 }
 
@@ -1115,52 +1129,108 @@ function getRelativeDateString(dueDate) {
 
 function renderModalSubtasks() {
     const list = document.getElementById('modal-subtask-list');
+    // Reset flag so setupDragList re-attaches listeners after fresh innerHTML
+    list._dragSetup = false;
     list.innerHTML = '';
     currentSubtasks.forEach((sub, index) => {
         list.innerHTML += `
-            <li class="subtask-item" draggable="true" 
-                ondragstart="dragStartSubtask(event, ${index})" 
-                ondragover="dragOverSubtask(event)" 
-                ondragleave="dragLeaveSubtask(event)"
-                ondrop="dropSubtask(event, ${index})"
+            <li class="subtask-item" data-drag-item data-drag-index="${index}"
                 style="display:flex; justify-content:space-between; align-items:center; background:var(--bg-panel); padding:6px; border-radius:4px;">
                 <div style="display:flex; align-items:center; gap: 10px;">
-                    <span style="color:var(--text-muted); cursor:grab;">☰</span>
+                    <span data-drag-handle style="color:var(--text-muted);">☰</span>
                     <span style="font-size:0.9rem;">${sub.title}</span>
                 </div>
                 <button class="btn-cancel" style="padding:2px 6px; font-size:0.8rem;" onclick="removeModalSubtask(event, ${index})">✕</button>
             </li>
         `;
     });
+    setupDragList('modal-subtask-list', (from, to) => {
+        const item = currentSubtasks.splice(from, 1)[0];
+        currentSubtasks.splice(to, 0, item);
+        renderModalSubtasks();
+    });
 }
 
-// --- DRAG AND DROP LOGIC ---
-function dragStartSubtask(event, index) {
-    draggedSubtaskIndex = index;
-    event.dataTransfer.effectAllowed = "move";
-}
+// --- UNIFIED POINTER-EVENTS DRAG SYSTEM (works on mobile & desktop) ---
+// Sets up drag-to-reorder on any list using [data-drag-item] / [data-drag-handle].
+// Call after each render. The _dragSetup flag prevents duplicate listeners.
+function setupDragList(listId, onReorderFn) {
+    const list = document.getElementById(listId);
+    if (!list || list._dragSetup) return;
+    list._dragSetup = true;
 
-function dragOverSubtask(event) {
-    event.preventDefault(); // Necessary to allow dropping
-    event.currentTarget.classList.add('drag-over');
-}
+    let drag = null;
 
-function dragLeaveSubtask(event) {
-    event.currentTarget.classList.remove('drag-over');
-}
+    list.addEventListener('pointerdown', (e) => {
+        if (!e.target.closest('[data-drag-handle]')) return;
+        const item = e.target.closest('[data-drag-item]');
+        if (!item) return;
 
-function dropSubtask(event, dropIndex) {
-    event.preventDefault();
-    event.currentTarget.classList.remove('drag-over');
-    
-    if (draggedSubtaskIndex === null || draggedSubtaskIndex === dropIndex) return;
-    
-    // Remove the item from the old position and insert at the new position
-    const item = currentSubtasks.splice(draggedSubtaskIndex, 1)[0];
-    currentSubtasks.splice(dropIndex, 0, item);
-    
-    draggedSubtaskIndex = null;
-    renderModalSubtasks();
+        e.preventDefault();
+        const rect = item.getBoundingClientRect();
+
+        // Create a floating ghost that follows the pointer
+        const ghost = item.cloneNode(true);
+        ghost.style.cssText = `
+            position:fixed; top:${rect.top}px; left:${rect.left}px;
+            width:${rect.width}px; opacity:0.85; z-index:9999;
+            pointer-events:none; border-radius:8px;
+            box-shadow:0 8px 25px rgba(0,0,0,0.5); transform:scale(1.02);
+        `;
+        document.body.appendChild(ghost);
+
+        drag = {
+            startIndex: parseInt(item.dataset.dragIndex),
+            currentIndex: parseInt(item.dataset.dragIndex),
+            ghost,
+            sourceEl: item,
+            offsetY: e.clientY - rect.top,
+            itemHeight: rect.height,
+        };
+        item.style.opacity = '0.3';
+
+        // Capture so all future pointer events arrive here even if pointer leaves list
+        list.setPointerCapture(e.pointerId);
+    });
+
+    list.addEventListener('pointermove', (e) => {
+        if (!drag) return;
+        e.preventDefault();
+
+        // Move ghost — vertical axis only
+        drag.ghost.style.top = (e.clientY - drag.offsetY) + 'px';
+
+        // Determine which slot the ghost's midpoint is over
+        const ghostMid = e.clientY - drag.offsetY + drag.itemHeight / 2;
+        const items = list.querySelectorAll('[data-drag-item]');
+        items.forEach((el, i) => {
+            el.classList.remove('drag-over');
+            const r = el.getBoundingClientRect();
+            if (ghostMid >= r.top && ghostMid <= r.bottom) drag.currentIndex = i;
+        });
+        if (drag.currentIndex !== drag.startIndex) {
+            const target = items[drag.currentIndex];
+            if (target) target.classList.add('drag-over');
+        }
+    });
+
+    const finishDrag = () => {
+        if (!drag) return;
+        drag.ghost.remove();
+        drag.sourceEl.style.opacity = '';
+        list.querySelectorAll('[data-drag-item]').forEach(el => el.classList.remove('drag-over'));
+        const { startIndex, currentIndex } = drag;
+        drag = null;
+        if (startIndex !== currentIndex) onReorderFn(startIndex, currentIndex);
+    };
+
+    list.addEventListener('pointerup', finishDrag);
+    list.addEventListener('pointercancel', () => {
+        if (!drag) return;
+        drag.ghost.remove();
+        drag.sourceEl.style.opacity = '';
+        drag = null;
+    });
 }
 
 function addModalSubtask(event) {
