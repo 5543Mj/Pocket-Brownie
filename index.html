@@ -44,7 +44,7 @@
                         <span>Points: </span>
                         <span id="brownie-points">0</span>
                     </div>
-                    <button class="btn-primary" style="padding: 3px 0 0 0;" onclick="openModal()">➕</button>
+                    <button class="btn-primary" onclick="openModal()">➕</button>
                 </div>
             </header>
 
@@ -69,7 +69,7 @@
                 <div class="reward-section">
                     <input type="text" id="reward-name" placeholder="Reward" onkeydown="if(event.key === 'Enter') saveReward()">
                     <input type="number" style="max-width: 66px;" id="reward-cost" placeholder="Cost" onkeydown="if(event.key === 'Enter') saveReward()">
-                    <button class="btn-primary" style="padding: 3px 0 0 0" id="btn-add-reward" onclick="saveReward()">➕</button>
+                    <button class="btn-primary" id="btn-add-reward" onclick="saveReward()">➕</button>
                     <button class="btn-cancel" id="btn-cancel-reward" onclick="cancelEditReward()" style="display:none;">Cancel</button>
                 </div>
                 <div id="list-rewards" class="task-list" style="margin-top: 1rem;"></div>
@@ -114,11 +114,11 @@
             </select>
 
             <!-- Subtasks Manager (Only shows for Chores) -->
-            <div id="subtasks-group" style="display:none; background: var(--bg-dark); padding: 10px; border-radius: 6px; border: 1px solid #333;">
+            <div id="subtasks-group">
                 <label style="font-size: 0.85rem; color: var(--text-muted);">Subtasks:</label>
                 <div style="display:flex; gap:5px; margin-top:5px;">
                     <input type="text" id="new-subtask-title" placeholder="Add a subtask" onkeydown="if(event.key === 'Enter') addModalSubtask(event)">
-                    <button class="btn-primary" style="padding: 5px 0 0 0;" onclick="addModalSubtask(event)">➕</button>
+                    <button class="btn-primary" onclick="addModalSubtask(event)">➕</button>
                 </div>
                 <ul id="modal-subtask-list" style="list-style:none; padding:0; margin-top:10px; display:flex; flex-direction:column; gap:5px;"></ul>
             </div>
@@ -164,7 +164,7 @@
 
     <!-- Randomizer Modal -->
     <div id="random-modal" class="modal">
-        <div class="modal-content" style="text-align: center; padding: 3rem;">
+        <div class="modal-content">
             <h3 id="random-folder-name" style="color: var(--text-muted); margin-bottom: 1rem;">Choosing from...</h3>
             
             <div id="random-animation-box" style="font-size: 1.5rem; font-weight: bold; min-height: 80px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--accent);">
@@ -189,7 +189,7 @@
         </div>
     </div>
     <div id="yesterday-modal" class="modal">
-            <div class="modal-content" style="max-height: 80vh; overflow-y: auto;">
+            <div class="modal-content">
                 <h3 style="text-align: center; color: var(--accent); margin-bottom: 0.5rem;">Wait! Did you do these?</h3>
                 <p style="text-align: center; color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">These were due yesterday. If you finished them but forgot to tap the checkmark, claim your full points now!</p>
             
