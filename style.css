@@ -137,13 +137,15 @@ button {
 .btn-primary { 
     width: 38px; 
     height: 38px; 
+    display: inline-flex;
     align-items: center; 
     justify-content: center;
     background-color: var(--accent); 
     color: #121212; 
     font-size: 18px; 
     transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
-    padding: 3px 0 0 1px;
+    border-radius: 6px;
+    padding: 3px 0 0 0;
 }
 
 .btn-cancel { 
@@ -240,18 +242,15 @@ button {
     flex-shrink: 0; /* Prevents buttons from squishing if the title is long */
 }
 
-.task-actions button {
-    width: 36px;          
-    height: 36px;         
-    padding: 0;      
-
-    /* Center the icons/text perfectly */
+.task-actions button, .btn-cancel {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    
-    /* Optional: Make them slightly rounder or sharper */
-    border-radius: 6px;   
+}
+
+.task-actions button {
+    width: 36px;          
+    height: 36px;              
 }
 
 .reward-section {
@@ -455,6 +454,43 @@ input, select, textarea {
     text-align: center;
     padding: 1rem;
     font-size: 0.85rem;
+}
+
+/* --- SUBTASK UI CLASSES --- */
+.subtasks-wrapper {
+    margin-top: 10px; 
+    border-top: 1px solid #333; 
+    padding-top: 10px; 
+    width: 100%; 
+    text-align: left;
+}
+
+.subtask-header {
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    cursor: pointer; 
+    color: var(--text-muted); 
+    font-size: 0.85rem; 
+    margin-bottom: 5px;
+}
+
+.subtask-row {
+    display: flex; 
+    align-items: center; 
+    gap: 8px; 
+    margin-bottom: 6px; 
+    font-size: 0.95rem; 
+    cursor: pointer;
+    text-align: left;
+    width: 100%;
+}
+
+.subtask-row input[type="checkbox"] {
+    transform: scale(1.3); 
+    cursor: pointer; 
+    margin: 0; 
+    flex-shrink: 0; 
 }
 
 /* Mobile Default */
