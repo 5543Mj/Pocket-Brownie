@@ -13,6 +13,18 @@ let shuffleInterval; // For the randomizer
 let currentSubtasks = []; // Holds subtasks temporarily while modal is open
 let draggedSubtaskIndex = null; // Tracks the subtask being dragged
 
+const THEME_PRESETS = [
+    '#d4a373', // Default Sassy Sassafras
+    '#d27575', // Hearts Afire Red
+    '#e9c46a', // Golden Chalice
+    '#2a9d8f', // Azure Tide
+    '#73A4D4', // Iceberg
+    '#73d4a3', // Seafoam Green
+    '#8ab17d', // Asparagus
+    '#b5838d',  // Mauve/Purple
+    '#a373d4'  // Amethyst
+];
+
 const DIFFICULTY_MAP = { trivial: 2, easy: 5, medium: 10, hard: 20, expert: 30 };
 
 function loadQuotes() {
@@ -55,18 +67,6 @@ function getTodayString() {
     const day = String(d.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
 }
-
-const THEME_PRESETS = [
-    '#d4a373', // Default Sassy Sassafras
-    '#d27575', // Hearts Afire Red
-    '#e9c46a', // Golden Chalice
-    '#2a9d8f', // Azure Tide
-    '#73A4D4', // Iceberg
-    '#73d4a3', // Seafoam Green
-    '#8ab17d', // Asparagus
-    '#b5838d',  // Mauve/Purple
-    '#a373d4'  // Amethyst
-];
 
 // Initialization
 function init() {
@@ -411,18 +411,18 @@ function checkDailyUpdates() {
                     let incompleteSubs = task.subtasks.filter(s => !s.completed);
                     if (incompleteSubs.length > 0) {
                         subtasksHTML = `
-                            <div class="subtasks-container" style="margin-top: 10px; border-top: 1px solid #333; padding-top: 10px; width: 100%; text-align: left;">
-                                <div class="subtask-toggle" onclick="toggleYesterdaySubtaskMenu(${task.id}, event)" style="display:flex; justify-content:space-between; align-items:center; cursor:pointer; color:var(--text-muted); font-size:0.85rem; margin-bottom: 5px;">
+                            <div class="subtasks-wrapper">
+                                <div class="subtask-header" onclick="toggleYesterdaySubtaskMenu(${task.id}, event)">
                                     <span>Incomplete Subtasks (${incompleteSubs.length})</span>
-                                    <span id="yesterday-caret-${task.id}" class="caret collapsed" style="transition: transform 0.2s;">▼</span>
+                                    <span id="yesterday-caret-${task.id}" class="caret collapsed">▼</span>
                                 </div>
-                                <div id="yesterday-subtask-content-${task.id}" class="subtask-content" style="display: none; margin-top: 8px; width: 100%; text-align: left;">
+                                <div id="yesterday-subtask-content-${task.id}" class="subtask-content" style="display: none; margin-top: 8px;">
                         `;
                         
                         incompleteSubs.forEach(sub => {
                             subtasksHTML += `
-                                <label onclick="event.stopPropagation();" style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 0.95rem; cursor: pointer;">
-                                    <input type="checkbox" onchange="completeYesterdaySubtask(${task.id}, ${sub.id}, this)" style="transform: scale(1.3); cursor: pointer; margin: 0;">
+                                <label class="subtask-row" onclick="event.stopPropagation();">
+                                    <input type="checkbox" onchange="completeYesterdaySubtask(${task.id}, ${sub.id}, this)">
                                     <span style="color: var(--text-main);">${sub.title}</span>
                                 </label>
                             `;
@@ -593,10 +593,10 @@ function getTaskHTML(task) {
 
         // Subtasks HTML text
         subtasksHTML = `
-            <div class="subtasks-container" style="margin-top: 10px; border-top: 1px solid #333; padding-top: 10px;">
-                <div class="subtask-toggle" onclick="toggleSubtaskMenu(${task.id}, event)" style="display:flex; justify-content:space-between; align-items:center; cursor:pointer; color:var(--text-muted); font-size:0.85rem; margin-bottom: 5px;">
+            <div class="subtasks-wrapper">
+                <div class="subtask-header" onclick="toggleSubtaskMenu(${task.id}, event)">
                     <span>(${completedSubs}/${task.subtasks.length})</span>
-                    <span class="caret ${!isMenuOpen ? 'collapsed' : ''}" style="transition: transform 0.2s;">▼</span>
+                    <span class="caret ${!isMenuOpen ? 'collapsed' : ''}">▼</span>
                 </div>
                 <div class="subtask-content" style="display: ${isMenuOpen ? 'block' : 'none'}; margin-top: 8px;">
         `;
@@ -605,8 +605,8 @@ function getTaskHTML(task) {
             let checked = sub.completed ? 'checked' : '';
             let textClass = sub.completed ? 'style="text-decoration:line-through; opacity:0.6;"' : '';
             subtasksHTML += `
-                <label onclick="event.stopPropagation();" style="display:flex; align-items:center; gap:8px; margin-bottom: 6px; font-size:0.95rem; cursor:pointer;">
-                    <input type="checkbox" ${checked} onchange="toggleSubtaskComplete(${task.id}, ${sub.id})" style="transform: scale(1.3); cursor:pointer;">
+                <label class="subtask-row" onclick="event.stopPropagation();">
+                    <input type="checkbox" ${checked} onchange="toggleSubtaskComplete(${task.id}, ${sub.id})">
                     <span ${textClass}>${sub.title}</span>
                 </label>
             `;
@@ -627,8 +627,8 @@ function getTaskHTML(task) {
         let resetText = task.habitReset ? task.habitReset.charAt(0).toUpperCase() + task.habitReset.slice(1) : 'Daily';
         subtext = `Resets: ${resetText} | <strong style="color:var(--accent);">${count}</strong>`;
         completeBtnHTML = `
-            <button class="btn-cancel" style="padding: 3px 0 0 0;" onclick="event.stopPropagation(); undoHabit(${task.id})" title="Undo">➖</button>
-            <button class="btn-primary complete-btn-${task.id}" style="padding: 3px 0 0 0;" onclick="event.stopPropagation(); toggleTaskComplete(${task.id})">➕</button>
+            <button class="btn-cancel" onclick="event.stopPropagation(); undoHabit(${task.id})" title="Undo">➖</button>
+            <button class="btn-primary complete-btn-${task.id}" onclick="event.stopPropagation(); toggleTaskComplete(${task.id})">➕</button>
     `;
 }
 
@@ -796,7 +796,7 @@ function renderAll() {
         todosHTML += `
             <div class="folder-header" onclick="toggleFolder('${folderName}')">
                 <div style="display: flex; align-items: center; gap: 10px;">
-                    <button class="btn-primary" onclick="event.stopPropagation(); openModal('${folderName}')" style="width: 28px; height: 28px; font-size: 16px; padding: 0; display: inline-flex; justify-content: center; align-items: center;" title="Add task to folder">+</button>
+                    <button class="btn-primary" onclick="event.stopPropagation(); openModal('${folderName}')" style="width: 28px; height: 28px; padding: 0 0 2.25px 0;" title="Add task to folder">+</button>
                     <span>${folderName}</span>
                 </div>
                 <div class="folder-header-actions">
@@ -1030,7 +1030,7 @@ function renderRewards() {
                     <small>Cost: ${reward.cost} pts</small>
                 </div>
                 <div class="task-actions">
-                    <button class="btn-primary" onclick="event.stopPropagation(); buyReward(${reward.id})">Buy</button>
+                    <button class="btn-primary" style="padding: 0;" onclick="event.stopPropagation(); buyReward(${reward.id})">Buy</button>
                     <button class="btn-cancel" onclick="event.stopPropagation(); deleteReward(${reward.id})">🗑</button>
                 </div>
             </div>
