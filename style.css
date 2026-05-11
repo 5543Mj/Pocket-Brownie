@@ -422,7 +422,20 @@ input, select, textarea {
     cursor: grabbing;
 }
 .subtask-item.drag-over {
-    border-top: 2px solid var(--accent); /* Visual indicator for where it will drop */
+    border-top: 2px solid var(--accent);
+}
+
+/* Universal drag handle — prevents browser scroll/zoom on touch */
+[data-drag-handle] {
+    touch-action: none;
+    cursor: grab;
+    user-select: none;
+}
+[data-drag-handle]:active { cursor: grabbing; }
+
+/* Drop-target indicator for both subtasks and rewards */
+[data-drag-item].drag-over {
+    border-top: 2px solid var(--accent);
 }
 
 .nav-links li.active {
@@ -554,7 +567,7 @@ input, select, textarea {
     }
     .maintenance-actions button, .maintenance-actions label {
     font-size: 4vw; 
-    padding: 0.4rem 0.6rem;
+    padding: 0.4rem 0.4rem;
     white-space: nowrap; 
     }
     .head-icon {
